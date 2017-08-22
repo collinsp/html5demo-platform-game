@@ -55,6 +55,7 @@ STAGE.update=()=>{
 
   // move the stage so the player is near the center of the screen
   STAGE.x -= ((STAGE.x - ((PLAYER.x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
+  STAGE.y -= ((STAGE.y - ((PLAYER.y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
 }
 
 
@@ -75,9 +76,11 @@ let makeGround=(x,y,w,h,color)=>{
   STAGE.addChild(g);
   GROUND.push(g);
 }
-makeGround(10,440,800,1,0x4f844e);
-makeGround(100,200,90,1,0x4f844e);
 makeGround(40,100,50,1,0x4f844e);
+makeGround(100,200,90,1,0x4f844e);
+makeGround(50,300,400,1,0x4f844e);
+makeGround(80,400,80,1,0x4f844e);
+makeGround(10,440,800,1,0x4f844e);
 
 
 let PLAYER = new PIXI.Graphics();
