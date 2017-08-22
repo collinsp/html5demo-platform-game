@@ -58,16 +58,26 @@ STAGE.update=()=>{
 }
 
 
-  
-let GROUND = new PIXI.Graphics();
-STAGE.addChild(GROUND);
-GROUND.beginFill(0x4f844e);
-GROUND.drawRect(0, 0, 1000, 40);
-GROUND.endFill();
-GROUND.x=10;
-GROUND.y=440;
-GROUND.climbable = false;
-GROUND.update=()=>{};
+let GROUND = [];
+let makeGround=(x,y,w,h,color)=>{
+  let g = new PIXI.Graphics();
+  if (! x) x=0;
+  if (! y) y=0;
+  if (! w) w=200;
+  if (! h) w=20;
+  g.beginFill(color);
+  g.drawRect(0, 0, w, h);
+  g.endFill();
+  g.x=x;
+  g.y=y;
+  g.climbable = false;
+  g.update=()=>{};
+  STAGE.addChild(g);
+  GROUND.push(g);
+}
+makeGround(10,440,800,1,0x4f844e);
+makeGround(100,200,90,1,0x4f844e);
+makeGround(40,100,50,1,0x4f844e);
 
 
 let PLAYER = new PIXI.Graphics();
@@ -81,14 +91,16 @@ PLAYER.x = PLAYER.prevX = 100;
 PLAYER.y = PLAYER.prevY = 100;
 PLAYER.speed_x = 0;
 PLAYER.speed_y = 0;
-PLAYER.acceleration_x = .0002;
+PLAYER.acceleration_x = .0003;
 PLAYER.stop_acceleration_x = .0008;
 PLAYER.acceleration_y = .0004;
 PLAYER.stop_acceleration_y = .0008;
 PLAYER.fall_acceleration_y = .001;
+PLAYER.fall_acceleration_x = .0003;
 PLAYER.max_speed_x = 1;
 PLAYER.max_speed_y = 1;
-PLAYER.jump_end_time = 0;
+PLAYER.jump_speed = .2;
+PLAYER.jump_end = 0;
 PLAYER.controller = window.KEYBOARD_CONTROLLER;
 PLAYER.update=()=>{
   if (PLAYER.ground) {
@@ -121,14 +133,27 @@ PLAYER.update=()=>{
     // handle jump
     if (PLAYER.controller.space) {
       PLAYER.ground=null;
-      PLAYER.jump_end_time = T1 + 5000;
-      PLAYER.speed_y -= 1;
+      PLAYER.jump_end = T1 + 1000;
+      PLAYER.speed_y = -.3;
     }
   }
 
   // handle falling
   else {
     PLAYER.speed_y += PLAYER.fall_acceleration_y * ELAPSED_TIME; 
+
+    // handle x movement
+    if (PLAYER.controller.x==1 && PLAYER.speed_x >= 0) {
+      PLAYER.speed_x += PLAYER.fall_acceleration_x * ELAPSED_TIME;
+    } else if (PLAYER.controller.x==-1 && PLAYER.speed_x <= 0) {
+      PLAYER.speed_x -= PLAYER.fall_acceleration_x * ELAPSED_TIME;
+    }
+
+    if (PLAYER.controller.space) {
+      if (T1 > 0 && T1 < PLAYER.jump_end) {
+        PLAYER.speed_y -= .01;
+      }
+    }
   }
 
   // handle maximum veolcities
@@ -148,18 +173,23 @@ PLAYER.update=()=>{
   PLAYER.y += PLAYER.speed_y * ELAPSED_TIME;
 
   // is the ground still valid
-  if (PLAYER.ground && (PLAYER.x < GROUND.x || (PLAYER.x > GROUND.x + GROUND.width))) {
+  if (PLAYER.ground && (PLAYER.x < PLAYER.ground.x || (PLAYER.x > PLAYER.ground.x + PLAYER.ground.width))) {
     PLAYER.ground=null;
   }
 
   // handle ground
   if (PLAYER.ground) {
-    PLAYER.y = GROUND.y;
+    PLAYER.y = PLAYER.ground.y-PLAYER.height;
+    PLAYER.speed_y=0;
   } else {
-    // if landed on ground
-    if ((PLAYER.x >= GROUND.x && PLAYER.x <= (GROUND.x + GROUND.width)) && 
-        (PLAYER.prevY <= GROUND.y && PLAYER.y >= GROUND.y)) {
-      PLAYER.ground = GROUND;
+
+    // look for a ground
+    for (let g of GROUND) {
+      if ((PLAYER.x >= g.x && PLAYER.x <= (g.x + g.width)) && 
+          (PLAYER.prevY+PLAYER.height <= g.y && PLAYER.y+PLAYER.height >= g.y)) {
+        PLAYER.ground = g;
+        break;
+      }
     }
   }
 };
