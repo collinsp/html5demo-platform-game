@@ -15,29 +15,72 @@ document.getElementById('PauseBut').onclick=()=>{
 }
 
 
-// keyboard controller
-let KEYBOARD_CONTROLLER;
-{ let c={ x:0, y:0, space:0 };
-  window.addEventListener("keydown", (e)=>{
-    switch(e.keyCode) {
-      case 32: c.space=1; break; // spacebar
-      case 37: c.x=-1; break; // left
-      case 38: c.y=-1; break; // up
-      case 39: c.x= 1; break; // right
-      case 40: c.y= 1; break; // down
+// gamepad and keyboard controllers
+let gamePadPlayerIdxMap=[];
+let updateGamepads=()=>{
+  let gps = navigator.getGamepads();
+  for (let i=0,l=gps.length; i<l; ++i) {
+    // if gampepad is active
+    if (gps[i]) {
+      if (gamePadPlayerIdxMap[i]==undefined) {
+        gamePadPlayerIdxMap[i]=createPlayer();
+        console.log('created new player for gamepad idx: '+i);
+      }
+      let c = PLAYERS[gamePadPlayerIdxMap[i]].controller;
+      let b=gps[i].buttons;
+      c.up     =b[12].pressed;
+      c.down   =b[13].pressed;
+      c.left   =b[14].pressed;
+      c.right  =b[15].pressed;
+      c.run    =b[ 2].pressed;
+      c.jump   =b[ 0].pressed;
+      c.fire   =b[ 7].pressed;
+      c.sheild =b[ 6].pressed;
+      c.missile=b[ 5].pressed;
+      c.bomb   =b[ 4].pressed;
+      c.down   =b[13].pressed;
+      c.start  =b[ 9].pressed;
+      c.select =b[ 8].pressed;
     }
-  });
-  window.addEventListener("keyup", (e)=>{
-    switch(e.keyCode) {
-      case 32: c.space=0; break; // spacebar
-      case 37: c.x=0; break; // left
-      case 38: c.y=0; break; // up
-      case 39: c.x=0; break; // right
-      case 40: c.y=0; break; // down
+
+    // else inactive
+    else if (gamePadPlayerIdxMap[i]) {
+      let p = PLAYERS[gamePadPlayerIdxMap[i]];
+      p.destroy();
+      gamePadPlayerIdxMap[i]=undefined;
     }
-  });
-  KEYBOARD_CONTROLLER=c;
-}
+  }
+};
+
+let keyboardPlayerIdx=null;
+window.addEventListener("keydown", (e)=>{
+  if (keyboardPlayerIdx==null && e.keyCode >=37 && e.keyCode <= 40) {
+    keyboardPlayerIdx=createPlayer();
+    console.log('created new player for keyboard');
+  }
+  if (! keyboardPlayerIdx) return;
+  let c = PLAYERS[keyboardPlayerIdx].controller;
+  switch(e.keyCode) {
+    case 32: c.jump =true; break; // spacebar
+    case 37: c.left =true; break; // left
+    case 38: c.up   =true; break; // up
+    case 39: c.right=true; break; // right
+    case 40: c.down =true; break; // down
+  }
+});
+window.addEventListener("keyup", (e)=>{
+  if (keyboardPlayerIdx >= 0) {
+    let c = PLAYERS[keyboardPlayerIdx].controller;
+    switch(e.keyCode) {
+      case 32: c.jump =false; break; // spacebar
+      case 37: c.left =false; break; // left
+      case 38: c.up   =false; break; // up
+      case 39: c.right=false; break; // right
+      case 40: c.down =false; break; // down
+    }
+  }
+});
+
 
 
 let SCREEN = new PIXI.Container();
@@ -56,8 +99,11 @@ STAGE.update=()=>{
   for (let e of STAGE.children) e.update();
 
   // move the stage so the player is near the center of the screen
-  STAGE.x -= ((STAGE.x - ((PLAYER.x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
-  STAGE.y -= ((STAGE.y - ((PLAYER.y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
+  let p = PLAYERS[0];
+  if (p) {
+    STAGE.x -= ((STAGE.x - ((p.x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
+    STAGE.y -= ((STAGE.y - ((p.y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
+  }
 }
 
 // make ground
@@ -85,6 +131,7 @@ let GROUND = [];
   m(10,440,800,1,0x4f844e);
 }
 
+let PLAYERS=[];
 let createPlayer=()=>{
   let p = new PIXI.Graphics();
   STAGE.addChild(p);
@@ -109,13 +156,18 @@ let createPlayer=()=>{
   p.continue_jump_speed = .001;
   p.continue_jump_ms = 900;
   p.jump_end = 0;
-  p.controller = null;
+  p.destroy=()=>{
+    STAGE.removeChild(p);
+    var i = PLAYERS.indexOf(p);
+    if (i!=-1) PLAYERS.splice(i, 1);
+  };
+  p.controller={up:false,down:false,left:false,right:false,run:false,jump:false,fire:false,sheild:false,missile:false,bomb:false,start:false,select:false};
   p.update=()=>{
     if (p.ground) {
       // handle x movement (walking)
-      if (p.controller.x==1 && p.speed_x >= 0) {
+      if (p.controller.right && p.speed_x >= 0) {
         p.speed_x += p.acceleration_x * ELAPSED_TIME;
-      } else if (p.controller.x==-1 && p.speed_x <= 0) {
+      } else if (p.controller.left && p.speed_x <= 0) {
         p.speed_x -= p.acceleration_x * ELAPSED_TIME;
       } else if (p.speed_x > 0) {
         p.speed_x -= p.stop_acceleration_x * ELAPSED_TIME;
@@ -126,9 +178,9 @@ let createPlayer=()=>{
       }
   
       // handle y movement (climbing)
-      if (p.controller.y==1 && p.speed_y >= 0) {
+      if (p.controller.down && p.speed_y >= 0) {
         p.speed_y += p.acceleration_y * ELAPSED_TIME;
-      } else if (p.controller.y==-1 && p.speed_y <= 0) {
+      } else if (p.controller.up && p.speed_y <= 0) {
         p.speed_y -= p.acceleration_y * ELAPSED_TIME;
       } else if (p.speed_y > 0) {
         p.speed_y -= p.stop_acceleration_y * ELAPSED_TIME;
@@ -139,7 +191,7 @@ let createPlayer=()=>{
       }
   
       // handle jump
-      if (p.controller.space) {
+      if (p.controller.jump) {
         p.ground=null;
         p.jump_end = T1 + p.continue_jump_ms;
         p.speed_y = p.start_jump_speed * -1;
@@ -151,13 +203,13 @@ let createPlayer=()=>{
       p.speed_y += p.fall_acceleration_y * ELAPSED_TIME; 
   
       // handle x movement
-      if (p.controller.x==1 && p.speed_x >= 0) {
+      if (p.controller.right && p.speed_x >= 0) {
         p.speed_x += p.fall_acceleration_x * ELAPSED_TIME;
-      } else if (p.controller.x==-1 && p.speed_x <= 0) {
+      } else if (p.controller.left && p.speed_x <= 0) {
         p.speed_x -= p.fall_acceleration_x * ELAPSED_TIME;
       }
   
-      if (p.controller.space) {
+      if (p.controller.jump) {
         if (T1 > 0 && T1 < p.jump_end) {
           p.speed_y -= (p.continue_jump_speed * ELAPSED_TIME);
         }
@@ -201,11 +253,11 @@ let createPlayer=()=>{
       }
     }
   }
-  return p;
+
+  let i = PLAYERS.length;
+  PLAYERS[i]=p;
+  return i;
 }
-let PLAYER=createPlayer();
-PLAYER.controller=KEYBOARD_CONTROLLER;
-  
 
 
 let MSG = new PIXI.Text("", {
@@ -216,12 +268,17 @@ let MSG = new PIXI.Text("", {
 SCREEN.addChild(MSG);
 MSG.position.set(0, 0);
 MSG.update=()=>{
-  MSG.text =
-      " x:"  + PLAYER.x.toFixed(1)
-    + " y:"  + PLAYER.y.toFixed(1)
-    + " vx:" + PLAYER.speed_x.toFixed(1)
-    + " vy:" + PLAYER.speed_y.toFixed(1)
+  let p = PLAYERS[0];
+  if (p) {
+    MSG.text =
+      " x:"  + p.x.toFixed(1)
+    + " y:"  + p.y.toFixed(1)
+    + " vx:" + p.speed_x.toFixed(1)
+    + " vy:" + p.speed_y.toFixed(1)
     + " stageX: " + STAGE.x.toFixed(1);
+  } else {
+    MSG.text='';
+  }
 }
 
 
@@ -233,6 +290,7 @@ let ELAPSED_TIME=0;
 let GAME_LOOP=(t1)=>{
   T1=t1;
   ELAPSED_TIME=T1-T0;
+  updateGamepads();
   SCREEN.update();
   RENDERER.render(SCREEN);
   T0=T1;
