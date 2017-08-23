@@ -4,6 +4,7 @@ let RENDERER = PIXI.autoDetectRenderer(640,480);
 RENDERER.backgroundColor = 0x7cd3ff;
 document.body.appendChild(RENDERER.view);
 
+// pause button
 let IS_PAUSED=false;
 document.getElementById('PauseBut').onclick=()=>{
   if (IS_PAUSED) {
