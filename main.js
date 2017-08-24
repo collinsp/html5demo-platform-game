@@ -54,11 +54,11 @@ let updateGamepads=()=>{
 
 let keyboardPlayerIdx=null;
 window.addEventListener("keydown", (e)=>{
-  if (keyboardPlayerIdx==null && e.keyCode >=37 && e.keyCode <= 40) {
+  if (keyboardPlayerIdx===null && e.keyCode >=37 && e.keyCode <= 40) {
     keyboardPlayerIdx=createPlayer();
     console.log('created new player for keyboard');
   }
-  if (! keyboardPlayerIdx) return;
+  if (keyboardPlayerIdx===null) return;
   let c = PLAYERS[keyboardPlayerIdx].controller;
   switch(e.keyCode) {
     case 32: c.jump =true; break; // spacebar
@@ -69,15 +69,14 @@ window.addEventListener("keydown", (e)=>{
   }
 });
 window.addEventListener("keyup", (e)=>{
-  if (keyboardPlayerIdx >= 0) {
-    let c = PLAYERS[keyboardPlayerIdx].controller;
-    switch(e.keyCode) {
-      case 32: c.jump =false; break; // spacebar
-      case 37: c.left =false; break; // left
-      case 38: c.up   =false; break; // up
-      case 39: c.right=false; break; // right
-      case 40: c.down =false; break; // down
-    }
+  if (keyboardPlayerIdx===null) return;
+  let c = PLAYERS[keyboardPlayerIdx].controller;
+  switch(e.keyCode) {
+    case 32: c.jump =false; break; // spacebar
+    case 37: c.left =false; break; // left
+    case 38: c.up   =false; break; // up
+    case 39: c.right=false; break; // right
+    case 40: c.down =false; break; // down
   }
 });
 
