@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 let RENDERER = PIXI.autoDetectRenderer(640,480);
 RENDERER.backgroundColor = 0x7cd3ff;
@@ -24,7 +24,6 @@ let updateGamepads=()=>{
     if (gps[i]) {
       if (gamePadPlayerIdxMap[i]==undefined) {
         gamePadPlayerIdxMap[i]=createPlayer();
-        console.log('created new player for gamepad idx: '+i);
       }
       let c = PLAYERS[gamePadPlayerIdxMap[i]].controller;
       let b=gps[i].buttons;
@@ -54,6 +53,7 @@ let updateGamepads=()=>{
 
 let keyboardPlayerIdx=null;
 window.addEventListener("keydown", (e)=>{
+//console.log(e.keyCode);
   if (keyboardPlayerIdx===null && e.keyCode >=37 && e.keyCode <= 40) {
     keyboardPlayerIdx=createPlayer();
     console.log('created new player for keyboard');
@@ -61,6 +61,7 @@ window.addEventListener("keydown", (e)=>{
   if (keyboardPlayerIdx===null) return;
   let c = PLAYERS[keyboardPlayerIdx].controller;
   switch(e.keyCode) {
+    case 16: c.run  =true; break; // shift
     case 32: c.jump =true; break; // spacebar
     case 37: c.left =true; break; // left
     case 38: c.up   =true; break; // up
@@ -72,6 +73,7 @@ window.addEventListener("keyup", (e)=>{
   if (keyboardPlayerIdx===null) return;
   let c = PLAYERS[keyboardPlayerIdx].controller;
   switch(e.keyCode) {
+    case 16: c.run  =false; break; // shift
     case 32: c.jump =false; break; // spacebar
     case 37: c.left =false; break; // left
     case 38: c.up   =false; break; // up
@@ -127,7 +129,7 @@ let GROUND = [];
   m(100,200,90,1,0x4f844e);
   m(50,300,400,1,0x4f844e);
   m(80,400,80,1,0x4f844e);
-  m(10,440,800,1,0x4f844e);
+  m(10,440,2800,1,0x4f844e);
 }
 
 let PLAYERS=[];
@@ -143,14 +145,18 @@ let createPlayer=()=>{
   p.y = p.prevY = 100;
   p.speed_x = 0;
   p.speed_y = 0;
-  p.acceleration_x = .0008;
-  p.acceleration_y = .0008;
+  p.walk_acceleration_x = .0004;
+  p.walk_acceleration_y = .0004;
+  p.run_acceleration_x = .0008;
+  p.run_acceleration_y = .0008;
   p.stop_acceleration_x = .001;
   p.stop_acceleration_y = .0008;
   p.fall_acceleration_y = .002;
-  p.fall_acceleration_x = .0006;
-  p.max_speed_x = 1;
-  p.max_speed_y = 1;
+  p.fall_acceleration_x = .0004;
+  p.walk_max_speed_x = .2;
+  p.walk_max_speed_y = .2;
+  p.run_max_speed_x = .4;
+  p.run_max_speed_y = .4;
   p.start_jump_speed = .5;
   p.continue_jump_speed = .001;
   p.continue_jump_ms = 900;
@@ -163,11 +169,32 @@ let createPlayer=()=>{
   p.controller={up:false,down:false,left:false,right:false,run:false,jump:false,fire:false,sheild:false,missile:false,bomb:false,start:false,select:false};
   p.update=()=>{
     if (p.ground) {
-      // handle x movement (walking)
+
+      // handle walk/run x axis movement
       if (p.controller.right && p.speed_x >= 0) {
-        p.speed_x += p.acceleration_x * ELAPSED_TIME;
+        if (p.controller.run) {
+          p.speed_x += p.run_acceleration_x * ELAPSED_TIME;
+          if (p.speed_x > p.run_max_speed_x) {
+            p.speed_x=p.run_max_speed_x;
+          }
+        } else {
+          p.speed_x += p.walk_acceleration_x * ELAPSED_TIME;
+          if (p.speed_x > p.walk_max_speed_x) {
+            p.speed_x=p.walk_max_speed_x;
+          }
+        }
       } else if (p.controller.left && p.speed_x <= 0) {
-        p.speed_x -= p.acceleration_x * ELAPSED_TIME;
+        if (p.controller.run) {
+          p.speed_x -= p.run_acceleration_x * ELAPSED_TIME;
+          if (p.speed_x < (p.run_max_speed_x * -1)) {
+            p.speed_x=p.run_max_speed_x * -1;
+          }
+        } else {
+          p.speed_x -= p.walk_acceleration_x * ELAPSED_TIME;
+          if (p.speed_x < (p.walk_max_speed_x * -1)) {
+            p.speed_x=p.walk_max_speed_x * -1;
+          }
+        }
       } else if (p.speed_x > 0) {
         p.speed_x -= p.stop_acceleration_x * ELAPSED_TIME;
         if (p.speed_x < 0) p.speed_x=0;
@@ -175,12 +202,12 @@ let createPlayer=()=>{
         p.speed_x += p.stop_acceleration_x * ELAPSED_TIME;
         if (p.speed_x > 0) p.speed_x=0;
       }
-  
+
       // handle y movement (climbing)
       if (p.controller.down && p.speed_y >= 0) {
-        p.speed_y += p.acceleration_y * ELAPSED_TIME;
+        p.speed_y += p.walk_acceleration_y * ELAPSED_TIME;
       } else if (p.controller.up && p.speed_y <= 0) {
-        p.speed_y -= p.acceleration_y * ELAPSED_TIME;
+        p.speed_y -= p.walk_acceleration_y * ELAPSED_TIME;
       } else if (p.speed_y > 0) {
         p.speed_y -= p.stop_acceleration_y * ELAPSED_TIME;
         if (p.speed_y < 0) p.speed_y=0;
@@ -204,8 +231,14 @@ let createPlayer=()=>{
       // handle x movement
       if (p.controller.right && p.speed_x >= 0) {
         p.speed_x += p.fall_acceleration_x * ELAPSED_TIME;
+        if (p.speed_x > p.run_max_speed_x) {
+          p.speed_x=p.run_max_speed_x;
+        }
       } else if (p.controller.left && p.speed_x <= 0) {
         p.speed_x -= p.fall_acceleration_x * ELAPSED_TIME;
+        if (p.speed_x < p.run_max_speed_x * -1) {
+          p.speed_x=p.run_max_speed_x * -1;
+        }
       }
   
       if (p.controller.jump) {
@@ -215,16 +248,6 @@ let createPlayer=()=>{
       }
     }
   
-    // handle maximum veolcities
-    if (p.speed_x > p.max_speed_x)
-      p.speed_x=p.max_speed_x;
-    else if (p.speed_x < -1*p.max_speed_x)
-      p.speed_x=p.max_speed_x*-1;
-    if (p.speed_y > p.max_speed_y)
-      p.speed_y=p.max_speed_y;
-    else if (p.speed_y < -1*p.max_speed_y)
-      p.speed_y=p.max_speed_y*-1;
-    
     // update position
     p.prevX = p.x;
     p.prevY = p.y;
