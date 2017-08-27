@@ -99,11 +99,20 @@ SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   for (let e of STAGE.children) e.update();
 
-  // move the stage so the player is near the center of the screen
-  let p = PLAYERS[0];
-  if (p) {
-    STAGE.x -= ((STAGE.x - ((p.x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
-    STAGE.y -= ((STAGE.y - ((p.y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
+  var totalPlayers = 0;
+  let x=0,y=0;
+  for (let p of PLAYERS) {
+    if (p) {
+      totalPlayers++; 
+      x+=p.x;
+      y+=p.y;
+    }
+  }
+  if (totalPlayers > 0) {
+    x /= totalPlayers;
+    y /= totalPlayers;
+    STAGE.x -= ((STAGE.x - ((x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
+    STAGE.y -= ((STAGE.y - ((y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
   }
 }
 
@@ -129,7 +138,7 @@ let GROUND = [];
   m(100,200,90,1,0x4f844e);
   m(50,300,400,1,0x4f844e);
   m(80,400,80,1,0x4f844e);
-  m(10,440,2800,1,0x4f844e);
+  m(-200,440,2800,10,0x4f844e);
 }
 
 let PLAYERS=[];
