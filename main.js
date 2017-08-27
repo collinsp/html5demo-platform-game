@@ -1,18 +1,33 @@
 "use strict";
 
-let RENDERER = PIXI.autoDetectRenderer(640,480);
+let RENDERER = PIXI.autoDetectRenderer(window.innerWidth,window.innerHeight);
 RENDERER.backgroundColor = 0x7cd3ff;
 document.body.appendChild(RENDERER.view);
 
 // pause button
 let IS_PAUSED=false;
-document.getElementById('PauseBut').onclick=()=>{
+let PAUSE_MSG = new PIXI.Text("PAUSED", {
+  fontFamily: "monospace",
+  fontSize: 40,
+  fill: "white",
+  dropShadow: true,
+  dropShadowBlur: 10
+});
+let tooglePause=()=>{
   if (IS_PAUSED) {
     T0=performance.now();
     requestAnimationFrame(GAME_LOOP);
+    IS_PAUSED=false;
+    SCREEN.removeChild(PAUSE_MSG);
+  } else {
+    let x = SCREEN.x + (RENDERER.width - PAUSE_MSG.width) / 2;
+    let y = SCREEN.y + (RENDERER.height- PAUSE_MSG.height) / 2;
+    PAUSE_MSG.position.set(x, y);
+    IS_PAUSED=true;
+    SCREEN.addChild(PAUSE_MSG);
   }
-  IS_PAUSED=!IS_PAUSED;
 }
+
 
 
 // gamepad and keyboard controllers
@@ -54,6 +69,12 @@ let updateGamepads=()=>{
 let keyboardPlayerIdx=null;
 window.addEventListener("keydown", (e)=>{
 //console.log(e.keyCode);
+
+  // if esc button
+  if (e.keyCode==27) {
+    tooglePause(); 
+    return;
+  }
   if (keyboardPlayerIdx===null && e.keyCode >=37 && e.keyCode <= 40) {
     keyboardPlayerIdx=createPlayer();
     console.log('created new player for keyboard');
@@ -83,11 +104,17 @@ window.addEventListener("keyup", (e)=>{
 });
 
 
+let updateChildren=(e)=>{
+  if (e.children) {
+    for (let c of e.children) {
+      if (c.update) c.update();
+    }
+  }
+}
+
 
 let SCREEN = new PIXI.Container();
-SCREEN.update=()=>{
-  for (let e of SCREEN.children) e.update();
-}
+SCREEN.update=()=>{ updateChildren(SCREEN); }
 
 let STAGE = new PIXI.Container();
 STAGE.x=0;
@@ -97,7 +124,7 @@ STAGE.scroll_speed_x = 0;
 STAGE.scroll_speed_y = 0;
 SCREEN.addChild(STAGE);
 STAGE.update=()=>{
-  for (let e of STAGE.children) e.update();
+  updateChildren(STAGE);
 
   var totalPlayers = 0;
   let x=0,y=0;
@@ -130,7 +157,6 @@ let GROUND = [];
     g.x=x;
     g.y=y;
     g.climbable = false;
-    g.update=()=>{};
     STAGE.addChild(g);
     GROUND.push(g);
   }
