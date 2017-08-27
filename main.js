@@ -155,7 +155,7 @@ SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   updateChildren(STAGE);
 
-  var totalPlayers = 0;
+  let totalPlayers = 0;
   let x=0,y=0;
   for (let p of PLAYERS) {
     if (p) {
@@ -227,7 +227,7 @@ let createPlayer=()=>{
   p.jump_end = 0;
   p.destroy=()=>{
     STAGE.removeChild(p);
-    var i = PLAYERS.indexOf(p);
+    let i = PLAYERS.indexOf(p);
     if (i!=-1) PLAYERS.splice(i, 1);
   };
 
