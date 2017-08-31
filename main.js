@@ -1,5 +1,13 @@
 "use strict";
 
+
+let SFX = jsfx.Sounds({
+  "fire":{"Frequency":{"Start":677,"Min":620,"Slide":-0.37,"Max":944,"DeltaSlide":0.09,"RepeatSpeed":0,"ChangeAmount":-9},"Generator":{"Func":"sine","A":0.34390365900407127,"ASlide":0.062089220640302936},"Phaser":{"Offset":-0.23,"Sweep":0.19},"Volume":{"Sustain":0.08,"Decay":0.081,"Attack":0.001,"Master":0.7},"Vibrato":{"Depth":0,"Frequency":1.01,"FrequencySlide":-1,"DepthSlide":-1}},
+  "die":{"Frequency":{"Start":186.6228670242122,"Slide":0},"Generator":{"Func":"noise"},"Phaser":{"Offset":-0.16281910187532175,"Sweep":-0.1803511833022753},"Volume":{"Sustain":0.12907184086420787,"Decay":0.48833081296121317,"Punch":0.5948980684527602}},
+  "jump":{"Frequency":{"Start":420,"Slide":0.45,"Min":182,"Max":1800,"DeltaSlide":-0.46,"ChangeAmount":-8},"Generator":{"Func":"square","A":0.57,"B":0.62},"Filter":{"LP":0.97,"LPSlide":0.49,"LPResonance":0.51,"HP":0.35,"HPSlide":-0.59},"Volume":{"Sustain":0.11,"Decay":0.231,"Master":1,"Attack":0.001,"Punch":0.28},"Vibrato":{"Depth":0.66,"Frequency":1.01},"Phaser":{"Offset":-0.39,"Sweep":0.36}},
+  "coin":{"Frequency":{"Start":949.1150495238256,"ChangeSpeed":0.1740790554080534,"ChangeAmount":8.592424353581652},"Volume":{"Sustain":0.0514287203640081,"Decay":0.4610013625529856,"Punch":0.5706840101500973}},"ouch":{"Frequency":{"Start":615.8666429888202,"Slide":-0.6511455150522687},"Generator":{"Func":"noise","A":0.5509203434632829,"ASlide":-0.2668800443572652},"Filter":{"HP":0.14044495208945543},"Volume":{"Sustain":0.008549238492461631,"Decay":0.20502770410478288}}
+});
+
 let RENDERER = PIXI.autoDetectRenderer(window.innerWidth,window.innerHeight);
 RENDERER.backgroundColor = 0x7cd3ff;
 document.body.appendChild(RENDERER.view);
@@ -196,6 +204,46 @@ let GROUND = [];
   m(-200,440,2800,10,0x4f844e);
 }
 
+let BULLETS=[];
+let createBullet=(x,y,speed_x,speed_y)=>{
+  let b = new PIXI.Graphics();
+  STAGE.addChild(b);
+  b.beginFill(0x666666);
+  b.lineStyle(1, 0x00000, 1);
+  b.drawRect(0, 0, 2, 2);
+  b.endFill();
+  b.startX=x;
+  b.prevX=x;
+  b.x=x;
+  b.startY=y;
+  b.prevY=y;
+  b.y=y;
+  b.speed_x=speed_x;
+  b.speed_y=speed_y;
+  b.ttl = T1 + 2000;
+  b.destroy=()=>{
+    STAGE.removeChild(b);
+    let i = BULLETS.indexOf(b);
+    if (i!=-1) BULLETS.splice(i, 1);
+  };
+  b.update=()=>{
+    if (T1 > b.ttl) {
+      b.destroy();
+      return;
+    }
+    b.prevX = b.x;
+    b.prevY = b.y;
+    b.x += b.speed_x * ELAPSED_TIME;
+    b.y += b.speed_y * ELAPSED_TIME;
+/*
+    for (let p of PLAYERS) {
+      if (b.prevX p.x
+    }
+*/
+    
+  };
+};
+
 let PLAYERS=[];
 let createPlayer=()=>{
   let p = new PIXI.Graphics();
@@ -224,7 +272,19 @@ let createPlayer=()=>{
   p.start_jump_speed = .5;
   p.continue_jump_speed = .001;
   p.continue_jump_ms = 900;
+  p.fire_delay = 1000;
+  p.next_fire_time = 0;
   p.jump_end = 0;
+
+  p.die=()=>{
+    p.x = p.prevX = 100;
+    p.y = p.prevY = 100;
+    p.jump_end = 0;
+    p.speed_x = 0;
+    p.speed_y = 0;
+    SFX.die();
+  };
+
   p.destroy=()=>{
     STAGE.removeChild(p);
     let i = PLAYERS.indexOf(p);
@@ -241,6 +301,20 @@ let createPlayer=()=>{
     }
 
     if (! IS_PAUSED) {
+      if (p.input & BUT_FIRE && T1 >= p.next_fire_time) {
+        if ((p.input & (BUT_LEFT|BUT_RIGHT|BUT_UP|BUT_DOWN))) {
+          p.next_fire_time = T1 + p.fire_delay;
+          let speed_x = p.speed_x;
+          let speed_y = p.speed_y;
+          if (p.input & BUT_LEFT) speed_x-=1;
+          else if (p.input & BUT_RIGHT) speed_x+=1;
+          if (p.input & BUT_DOWN) speed_y += .5;
+          else if (p.input & BUT_UP) speed_y -= .5;
+          createBullet(p.x,p.y,speed_x,speed_y);
+          SFX.fire();
+        }
+      }
+
       if (p.ground) {
   
         // handle walk/run x axis movement
@@ -291,6 +365,7 @@ let createPlayer=()=>{
     
         // handle jump
         if (p.input & BUT_JUMP && !(p.prevInput & BUT_JUMP)) {
+          SFX.jump();
           p.ground=null;
           p.jump_end = T1 + p.continue_jump_ms;
           p.speed_y = p.start_jump_speed * -1;
@@ -346,6 +421,14 @@ let createPlayer=()=>{
           }
         }
       }
+
+      // falling to death?
+      if (p.y > 2000) {
+        p.y = -100;
+        p.x = 100;
+        p.die(); 
+      }
+
     } 
     p.prevInput=p.input;
   }
