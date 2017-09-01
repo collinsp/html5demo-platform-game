@@ -111,7 +111,7 @@ window.addEventListener("keydown", (e)=>{
     (k==39 && BUT_RIGHT)   ||
     (k==16 && BUT_RUN)     ||
     (k==32 && BUT_JUMP)    ||
-    (k== 0 && BUT_FIRE)    ||
+    (k==17 && BUT_FIRE)    ||
     (k== 0 && BUT_SHEILD)  ||
     (k== 0 && BUT_MISSILE) ||
     (k== 0 && BUT_BOMB)    ||
@@ -131,7 +131,7 @@ window.addEventListener("keyup", (e)=>{
     (k==39 && BUT_RIGHT)   ||
     (k==16 && BUT_RUN)     ||
     (k==32 && BUT_JUMP)    ||
-    (k== 0 && BUT_FIRE)    ||
+    (k==17 && BUT_FIRE)    ||
     (k== 0 && BUT_SHEILD)  ||
     (k== 0 && BUT_MISSILE) ||
     (k== 0 && BUT_BOMB)    ||
