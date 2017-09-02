@@ -164,6 +164,7 @@ STAGE.camera_y_speed=.005;
 SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   updateChildren(STAGE);
+  if (IS_PAUSED) return;
 
   let totalPlayers = 0;
 
@@ -213,6 +214,93 @@ let GROUND = [];
   m(-200,440,2800,10,0x4f844e);
 }
 
+let BADGUYS=[];
+let createEnemy=(x,y)=>{
+  let b = new PIXI.Graphics();
+  STAGE.addChild(b);
+  b.beginFill(0xA04A00);
+  b.lineStyle(1, 0x00000, 1);
+  b.drawRect(0, 0, 20, 20);
+  b.endFill();
+  if (y==undefined) y=100;
+  b.startX=x;
+  b.prevX=x;
+  b.x=x;
+  b.startY=y;
+  b.prevY=y;
+  b.y=y;
+  b.ground=null;
+  b.speed_x=.05;
+  b.speed_y=0;
+  b.fall_acceleration_y = .002;
+  b.destroy=()=>{
+    STAGE.removeChild(b);
+    let i = BADGUYS.indexOf(b);
+    if (i!=-1) BADGUYS.splice(i, 1);
+  };
+  b.update=()=>{
+    if (IS_PAUSED) return;
+
+    // update position
+    b.prevX = b.x;
+    b.prevY = b.y;
+    b.x += b.speed_x * ELAPSED_TIME;
+    b.y += b.speed_y * ELAPSED_TIME;
+  
+    // is the ground still valid
+    if (b.ground && (b.x < b.ground.x || (b.x > b.ground.x + b.ground.width))) {
+      b.ground=null;
+    }
+  
+    // handle ground
+    if (b.ground) {
+      b.y = b.ground.y-b.height;
+      b.speed_y=0;
+
+      // if near edge, turn to other direction
+      if (b.speed_x < 0 && b.ground.x-b.x < -20) {
+        b.speed_x*=-1;
+      } else if (b.speed_x > 0 && b.ground.x < 20) {
+        b.speed_x*=-1;
+      }
+
+    } else {
+      // look for a ground
+      for (let g of GROUND) {
+        if ((b.x >= g.x && b.x <= (g.x + g.width)) && 
+            (b.prevY+b.height <= g.y && b.y+b.height >= g.y)) {
+          b.ground = g;
+          break;
+        }
+      }
+    }
+
+    if (! b.ground) {
+      // falling to death?
+      if (b.y > 2000) {
+        b.destroy();
+        return;
+      }
+      b.speed_y += b.fall_acceleration_y * ELAPSED_TIME; 
+    }
+
+    // if hits player
+    else {
+      for (let p of PLAYERS) {
+        if (hitTest(b, p)) {
+          p.die(); 
+        }
+      }
+    }
+  };
+  BADGUYS.push(b);
+};
+createEnemy(100);
+createEnemy(200);
+createEnemy(300);
+createEnemy(400);
+createEnemy(500);
+
 let BULLETS=[];
 let createBullet=(x,y,speed_x,speed_y)=>{
   let b = new PIXI.Graphics();
@@ -236,6 +324,7 @@ let createBullet=(x,y,speed_x,speed_y)=>{
     if (i!=-1) BULLETS.splice(i, 1);
   };
   b.update=()=>{
+    if (IS_PAUSED) return;
     if (T1 > b.ttl) {
       b.destroy();
       return;
@@ -483,6 +572,7 @@ let MSG = new PIXI.Text("", {
 SCREEN.addChild(MSG);
 MSG.position.set(0, 0);
 MSG.update=()=>{
+  if (IS_PAUSED) return;
   let p = PLAYERS[0];
   if (p) {
     MSG.text =
