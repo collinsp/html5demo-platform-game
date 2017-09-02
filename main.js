@@ -103,6 +103,7 @@ window.addEventListener("keydown", (e)=>{
   }
   if (keyboardPlayerIdx===null) return;
 
+  // update the player input mask
   let p = PLAYERS[keyboardPlayerIdx];
   p.input |=  
     (k==38 && BUT_UP)      ||
@@ -124,6 +125,8 @@ window.addEventListener("keyup", (e)=>{
   if (keyboardPlayerIdx===null) return;
   let k = e.keyCode;
   let p = PLAYERS[keyboardPlayerIdx];
+
+  // update the player input mask
   p.input &= ~( 
     (k==38 && BUT_UP)      ||
     (k==40 && BUT_DOWN)    ||
@@ -156,14 +159,15 @@ SCREEN.update=()=>{ updateChildren(SCREEN); }
 let STAGE = new PIXI.Container();
 STAGE.x=0;
 STAGE.y=0;
-STAGE.scroll_acceleration = .001;
-STAGE.scroll_speed_x = 0;
-STAGE.scroll_speed_y = 0;
+STAGE.camera_x_speed=.005;
+STAGE.camera_y_speed=.005;
 SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   updateChildren(STAGE);
 
   let totalPlayers = 0;
+
+  // find target x,y coords
   let x=0,y=0;
   for (let p of PLAYERS) {
     if (p) {
@@ -173,10 +177,15 @@ STAGE.update=()=>{
     }
   }
   if (totalPlayers > 0) {
+    // get average
     x /= totalPlayers;
     y /= totalPlayers;
-    STAGE.x -= ((STAGE.x - ((x - (RENDERER.width/2)) * -1)) / (RENDERER.width/2)) * ELAPSED_TIME;
-    STAGE.y -= ((STAGE.y - ((y - (RENDERER.height/2)) * -1)) / (RENDERER.height/2)) * ELAPSED_TIME;
+
+    let targetStageX = RENDERER.width*.5 - x;
+    let targetStageY = RENDERER.height*.7 - y;  // keep player toward bottom of the screen
+
+    STAGE.x -= (STAGE.x - targetStageX) * STAGE.camera_x_speed * ELAPSED_TIME;
+    STAGE.y -= (STAGE.y - targetStageY) * STAGE.camera_y_speed * ELAPSED_TIME;
   }
 }
 
@@ -310,9 +319,14 @@ let createPlayer=()=>{
         p.next_fire_time = T1 + p.fire_delay;
         let speed_x = p.speed_x;
         let speed_y = p.speed_y;
+
+        // if no directionals pressed, fire in the direction player is facing
         if (!(p.input & (BUT_DOWN|BUT_UP|BUT_LEFT|BUT_RIGHT))) {
           speed_x += 1 * p.facing;
-        } else {
+        }
+
+        // else fire in the direction the player is pressing
+        else {
           if (p.input & BUT_DOWN) speed_y += 1;
           else if (p.input & BUT_UP) speed_y -= 1;
           if (p.input & BUT_RIGHT) speed_x += 1;
