@@ -275,6 +275,7 @@ let createPlayer=()=>{
   p.fire_delay = 1000;
   p.next_fire_time = 0;
   p.jump_end = 0;
+  p.facing = 1; // -1 facing left, 1 facing right
 
   p.die=()=>{
     p.x = p.prevX = 100;
@@ -301,18 +302,24 @@ let createPlayer=()=>{
     }
 
     if (! IS_PAUSED) {
+
+      if (p.input & BUT_LEFT) p.facing=-1;
+      else if (p.input & BUT_RIGHT) p.facing=1;
+
       if (p.input & BUT_FIRE && T1 >= p.next_fire_time) {
-        if ((p.input & (BUT_LEFT|BUT_RIGHT|BUT_UP|BUT_DOWN))) {
-          p.next_fire_time = T1 + p.fire_delay;
-          let speed_x = p.speed_x;
-          let speed_y = p.speed_y;
-          if (p.input & BUT_LEFT) speed_x-=1;
-          else if (p.input & BUT_RIGHT) speed_x+=1;
-          if (p.input & BUT_DOWN) speed_y += .5;
-          else if (p.input & BUT_UP) speed_y -= .5;
-          createBullet(p.x,p.y,speed_x,speed_y);
-          SFX.fire();
+        p.next_fire_time = T1 + p.fire_delay;
+        let speed_x = p.speed_x;
+        let speed_y = p.speed_y;
+        if (!(p.input & (BUT_DOWN|BUT_UP|BUT_LEFT|BUT_RIGHT))) {
+          speed_x += 1 * p.facing;
+        } else {
+          if (p.input & BUT_DOWN) speed_y += 1;
+          else if (p.input & BUT_UP) speed_y -= 1;
+          if (p.input & BUT_RIGHT) speed_x += 1;
+          else if (p.input & BUT_LEFT) speed_x -= 1;
         }
+        createBullet(p.x,p.y,speed_x,speed_y);
+        SFX.fire();
       }
 
       if (p.ground) {
