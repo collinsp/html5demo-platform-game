@@ -244,13 +244,28 @@ let createBullet=(x,y,speed_x,speed_y)=>{
     b.prevY = b.y;
     b.x += b.speed_x * ELAPSED_TIME;
     b.y += b.speed_y * ELAPSED_TIME;
-/*
+
+    // if bullet hits player
     for (let p of PLAYERS) {
-      if (b.prevX p.x
+      if (hitTest(b, p)) SFX.die();
     }
-*/
-    
   };
+};
+
+let hitTest=(a,b)=>{
+  let aLeft = (a.prevX + a.x)/2;
+  let aRight = aLeft + a.width;
+  let aTop = (a.prevY + a.y)/2;
+  let aBottom = aTop + a.height;
+  let bLeft = (b.prevX + b.x)/2;
+  let bRight = bLeft + b.width;
+  let bTop = (b.prevY + b.y)/2;
+  let bBottom = bTop + b.height;
+  return !(
+    (aBottom < bTop)    ||
+    (aTop    > bBottom) ||
+    (aLeft   > bRight)  ||
+    (aRight  < bLeft));
 };
 
 let PLAYERS=[];
