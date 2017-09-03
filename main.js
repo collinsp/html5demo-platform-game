@@ -364,7 +364,7 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
 
     // if bullet hits player
     for (let p of PLAYERS) {
-      if (p!=b.player && hitTest(b, p)) {
+      if (! p.is_dead && p!=b.player && hitTest(b, p)) {
         p.die();
         b.player.score++;
       }
@@ -408,6 +408,7 @@ let createPlayer=()=>{
   p.lineStyle(1, 0x000000, 1);
   p.drawRect(0, 0, 4, 20);
   p.endFill();
+  p.visible=false;
   p.ground = null;
   p.x = p.prevX = 100;
   p.y = p.prevY = 100;
@@ -433,19 +434,24 @@ let createPlayer=()=>{
   p.jump_end = 0;
   p.facing = 1; // -1 facing left, 1 facing right
   p.hitbox = [0,0,0,0];
-  p.is_dead=false;
+  p.is_dead=true;
   p.respawn_ms = 3000;
-  p.can_respawn_ms = 0;
+  p.can_respawn_ms = T1 + p.respawn_ms;
   p.score=0;
 
-  p.die=()=>{
+  p.spawn=()=>{
+    p.prevX= p.x = RENDERER.width/2 - STAGE.x;
+    p.prevY = p.y =-200;
+    p.is_dead=false;
+    p.visible=true;
     p.ground=null;
-    p.x = p.prevX = 100;
-    p.y = p.prevY = 100;
-    updateHitBox(p);
     p.jump_end = 0;
     p.speed_x = 0;
     p.speed_y = 0;
+    updateHitBox(p);
+  };
+
+  p.die=()=>{
     p.is_dead=true;
     p.visible=false;
     p.can_respawn_ms = T1 + p.respawn_ms;
@@ -468,10 +474,7 @@ let createPlayer=()=>{
     }
 
     // if player is dead, can they respawn
-    if (p.is_dead && T1 > p.can_respawn_ms && p.input) {
-      p.is_dead=false;
-      p.visible=true;
-    }
+    if (p.is_dead && T1 > p.can_respawn_ms && p.input) p.spawn();
 
     if (! IS_PAUSED && ! p.is_dead) {
 
