@@ -350,7 +350,13 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
 
     // if bullet hits player
     for (let p of PLAYERS) {
-      if (p!=b.player && hitTest(b, p)) p.die();
+      if (p!=b.player && hitTest(b, p)) {
+        p.score--;
+        if (p.score < 0) p.score=0;
+        p.die();
+        b.player.score++;
+      }
+      
     }
   };
 };
@@ -417,6 +423,7 @@ let createPlayer=()=>{
   p.is_dead=false;
   p.respawn_ms = 3000;
   p.can_respawn_ms = 0;
+  p.score=0;
 
   p.die=()=>{
     p.ground=null;
@@ -613,17 +620,12 @@ SCREEN.addChild(MSG);
 MSG.position.set(0, 0);
 MSG.update=()=>{
   if (IS_PAUSED) return;
-  let p = PLAYERS[0];
-  if (p) {
-    MSG.text =
-      " x:"  + p.x.toFixed(1)
-    + " y:"  + p.y.toFixed(1)
-    + " vx:" + p.speed_x.toFixed(1)
-    + " vy:" + p.speed_y.toFixed(1)
-    + " stageX: " + STAGE.x.toFixed(1);
-  } else {
-    MSG.text='';
+  let b = ''; 
+  for (let p of PLAYERS) {
+    b += p.score + '    ';
   }
+
+  MSG.text = b;
 }
 
 
