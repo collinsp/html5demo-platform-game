@@ -258,9 +258,9 @@ let createEnemy=(x,y)=>{
       b.speed_y=0;
 
       // if near edge, turn to other direction
-      if (b.speed_x < 0 && b.ground.x-b.x < -20) {
+      if (b.speed_x < 0 && b.x-b.ground.x < 1) {
         b.speed_x*=-1;
-      } else if (b.speed_x > 0 && b.ground.x < 20) {
+      } else if (b.speed_x > 0 && (b.ground.x+b.ground.width)-(b.x+b.width) < 1) {
         b.speed_x*=-1;
       }
 
@@ -391,6 +391,7 @@ let createPlayer=()=>{
   p.facing = 1; // -1 facing left, 1 facing right
 
   p.die=()=>{
+    p.ground=null;
     p.x = p.prevX = 100;
     p.y = p.prevY = 100;
     p.jump_end = 0;
