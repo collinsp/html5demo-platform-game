@@ -1,5 +1,6 @@
 "use strict";
 
+
 Array.prototype.shuffle=function(){
   let a=this,b,c=a.length,d;
   while(c)b=Math.random()*c--|0,d=a[c],a[c]=a[b],a[b]=d;
@@ -26,6 +27,8 @@ let SFX = jsfx.Sounds({
 let RENDERER = PIXI.autoDetectRenderer(window.innerWidth,window.innerHeight);
 RENDERER.backgroundColor = 0x7cd3ff;
 document.body.appendChild(RENDERER.view);
+window.addEventListener("resize",()=>{RENDERER.resize(window.innerWidth,window.innerHeight);});
+
 
 // pause button
 let IS_PAUSED=false;
