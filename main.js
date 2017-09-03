@@ -233,6 +233,10 @@ let createEnemy=(x,y)=>{
   b.speed_x=.05;
   b.speed_y=0;
   b.fall_acceleration_y = .002;
+  b.die=()=>{
+    SFX.die(); 
+    b.destroy();
+  };
   b.destroy=()=>{
     STAGE.removeChild(b);
     let i = BADGUYS.indexOf(b);
@@ -334,9 +338,14 @@ let createBullet=(x,y,speed_x,speed_y)=>{
     b.x += b.speed_x * ELAPSED_TIME;
     b.y += b.speed_y * ELAPSED_TIME;
 
+    // if bullet badguy
+    for (let p of BADGUYS) {
+      if (hitTest(b, p)) p.die();
+    }
+
     // if bullet hits player
     for (let p of PLAYERS) {
-      if (hitTest(b, p)) SFX.die();
+      if (hitTest(b, p)) p.die();
     }
   };
 };
@@ -437,7 +446,7 @@ let createPlayer=()=>{
           if (p.input & BUT_RIGHT) speed_x += 1;
           else if (p.input & BUT_LEFT) speed_x -= 1;
         }
-        createBullet(p.x,p.y,speed_x,speed_y);
+        createBullet(p.x,p.y+10,speed_x,speed_y);
         SFX.fire();
       }
 
