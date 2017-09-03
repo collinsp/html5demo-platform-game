@@ -414,6 +414,9 @@ let createPlayer=()=>{
   p.jump_end = 0;
   p.facing = 1; // -1 facing left, 1 facing right
   p.hitbox = [0,0,0,0];
+  p.is_dead=false;
+  p.respawn_ms = 3000;
+  p.can_respawn_ms = 0;
 
   p.die=()=>{
     p.ground=null;
@@ -423,6 +426,9 @@ let createPlayer=()=>{
     p.jump_end = 0;
     p.speed_x = 0;
     p.speed_y = 0;
+    p.is_dead=true;
+    p.visible=false;
+    p.can_respawn_ms = T1 + p.respawn_ms;
     SFX.die();
   };
 
@@ -441,7 +447,13 @@ let createPlayer=()=>{
       togglePause();
     }
 
-    if (! IS_PAUSED) {
+    // if player is dead, can they respawn
+    if (p.is_dead && T1 > p.can_respawn_ms && p.input) {
+      p.is_dead=false;
+      p.visible=true;
+    }
+
+    if (! IS_PAUSED && ! p.is_dead) {
 
       if (p.input & BUT_LEFT) p.facing=-1;
       else if (p.input & BUT_RIGHT) p.facing=1;
