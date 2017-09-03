@@ -229,6 +229,7 @@ let createEnemy=(x,y)=>{
   b.startY=y;
   b.prevY=y;
   b.y=y;
+  b.hitbox = [0,0,0,0];
   b.ground=null;
   b.speed_x=.05;
   b.speed_y=0;
@@ -250,6 +251,7 @@ let createEnemy=(x,y)=>{
     b.prevY = b.y;
     b.x += b.speed_x * ELAPSED_TIME;
     b.y += b.speed_y * ELAPSED_TIME;
+    updateHitBox(b);
   
     // is the ground still valid
     if (b.ground && (b.x < b.ground.x || (b.x > b.ground.x + b.ground.width))) {
@@ -320,6 +322,7 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
   b.startY=y;
   b.prevY=y;
   b.y=y;
+  b.hitbox = [0,0,0,0];
   b.speed_x=speed_x;
   b.speed_y=speed_y;
   b.ttl = T1 + 2000;
@@ -338,6 +341,7 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
     b.prevY = b.y;
     b.x += b.speed_x * ELAPSED_TIME;
     b.y += b.speed_y * ELAPSED_TIME;
+    updateHitBox(b);
 
     // if bullet badguy
     for (let p of BADGUYS) {
@@ -352,52 +356,29 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
 };
 
 let hitTest=(a,b)=>{
-/*
-  let aLeft = (a.prevX + a.x)/2;
-  let aRight = aLeft + a.width;
-  let aTop = (a.prevY + a.y)/2;
-  let aBottom = aTop + a.height;
-  let bLeft = (b.prevX + b.x)/2;
-  let bRight = bLeft + b.width;
-  let bTop = (b.prevY + b.y)/2;
-  let bBottom = bTop + b.height;
-*/
-
-  let aLeft,aRight,aTop,aBottom,bLeft,bRight,bTop,bBottom;
-  if (a.x < a.prevX) {
-    aLeft=a.x;
-    aRight=a.prevX+a.width; 
-  } else {
-    aLeft=a.prevX;
-    aRight=a.x+a.width; 
-  }
-  if (a.y < a.prevY) {
-    aTop=a.y;
-    aBottom=a.prevY+a.height; 
-  } else {
-    aTop=a.prevY;
-    aBottom=a.y+a.height; 
-  }
-  if (b.x < b.prevX) {
-    bLeft=b.x;
-    bRight=b.prevX+b.width; 
-  } else {
-    bLeft=b.prevX;
-    bRight=b.x+b.width; 
-  }
-  if (b.y < b.prevY) {
-    bTop=b.y;
-    bBottom=b.prevY+b.height; 
-  } else {
-    bTop=b.prevY;
-    bBottom=b.y+b.height; 
-  }
-  
   return !(
-    (aBottom < bTop)    ||
-    (aTop    > bBottom) ||
-    (aLeft   > bRight)  ||
-    (aRight  < bLeft));
+    (a.hitbox[2] < b.hitbox[0]) ||
+    (a.hitbox[0] > b.hitbox[2]) ||
+    (a.hitbox[3] > b.hitbox[1]) ||
+    (a.hitbox[1] < b.hitbox[3]) );
+};
+
+
+let updateHitBox=(o)=>{
+  if (o.x < o.prevX) {
+    o.hitbox[3]=o.x;
+    o.hitbox[1]=o.prevX+o.width; 
+  } else {
+    o.hitbox[3]=o.prevX;
+    o.hitbox[1]=o.x+o.width; 
+  }
+  if (o.y < o.prevY) {
+    o.hitbox[0]=o.y;
+    o.hitbox[2]=o.prevY+o.height; 
+  } else {
+    o.hitbox[0]=o.prevY;
+    o.hitbox[2]=o.y+o.height; 
+  }
 };
 
 let PLAYERS=[];
@@ -432,11 +413,13 @@ let createPlayer=()=>{
   p.next_fire_time = 0;
   p.jump_end = 0;
   p.facing = 1; // -1 facing left, 1 facing right
+  p.hitbox = [0,0,0,0];
 
   p.die=()=>{
     p.ground=null;
     p.x = p.prevX = 100;
     p.y = p.prevY = 100;
+    updateHitBox(p);
     p.jump_end = 0;
     p.speed_x = 0;
     p.speed_y = 0;
@@ -570,7 +553,8 @@ let createPlayer=()=>{
       p.prevY = p.y;
       p.x += p.speed_x * ELAPSED_TIME;
       p.y += p.speed_y * ELAPSED_TIME;
-  
+      updateHitBox(p);
+
       // is the ground still valid
       if (p.ground && (p.x < p.ground.x || (p.x > p.ground.x + p.ground.width))) {
         p.ground=null;
