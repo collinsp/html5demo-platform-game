@@ -447,7 +447,10 @@ let createPlayer=()=>{
 
   p.spawn=()=>{
     SFX.spawn();
-    p.prevX= p.x = RENDERER.width/2 - STAGE.x;
+
+    let middleOfScreen = RENDERER.width/2 - STAGE.x;
+    middleOfScreen += Math.random()*256-128; // add randomness between -128 and 128
+    p.prevX= p.x = middleOfScreen;
     p.prevY = p.y = -1*STAGE.y;
     p.is_dead=false;
     p.visible=true;
