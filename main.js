@@ -16,6 +16,7 @@ let getNextPlayerColor;
 }
 
 let SFX = jsfx.Sounds({
+  "spawn":{"Frequency":{"Start":187,"Min":30,"Max":1800,"Slide":-0.45,"DeltaSlide":0.27111740058694034,"RepeatSpeed":2.4240420017375692,"ChangeAmount":-2,"ChangeSpeed":1},"Vibrato":{"Depth":0,"DepthSlide":-1,"Frequency":0.01,"FrequencySlide":-1},"Generator":{"Func":"string","A":0.5,"B":0.9461043322329408,"ASlide":-0.900955208690442,"BSlide":-0.23},"Guitar":{"A":0.37506791578452603,"B":0.38594375638192946,"C":0.07162987314436853},"Phaser":{"Offset":0.45,"Sweep":1},"Volume":{"Master":0.74,"Attack":0.001,"Sustain":0.94,"Punch":1.04,"Decay":1.551},"Filter":{"HPSlide":-0.66,"LPResonance":0,"HP":0.57,"LP":0.87}},
   "fire":{"Frequency":{"Start":677,"Min":620,"Slide":-0.37,"Max":944,"DeltaSlide":0.09,"RepeatSpeed":0,"ChangeAmount":-9},"Generator":{"Func":"sine","A":0.34390365900407127,"ASlide":0.062089220640302936},"Phaser":{"Offset":-0.23,"Sweep":0.19},"Volume":{"Sustain":0.08,"Decay":0.081,"Attack":0.001,"Master":0.7},"Vibrato":{"Depth":0,"Frequency":1.01,"FrequencySlide":-1,"DepthSlide":-1}},
   "die":{"Frequency":{"Start":186.6228670242122,"Slide":0},"Generator":{"Func":"noise"},"Phaser":{"Offset":-0.16281910187532175,"Sweep":-0.1803511833022753},"Volume":{"Sustain":0.12907184086420787,"Decay":0.48833081296121317,"Punch":0.5948980684527602}},
   "jump":{"Frequency":{"Start":420,"Slide":0.45,"Min":182,"Max":1800,"DeltaSlide":-0.46,"ChangeAmount":-8},"Generator":{"Func":"square","A":0.57,"B":0.62},"Filter":{"LP":0.97,"LPSlide":0.49,"LPResonance":0.51,"HP":0.35,"HPSlide":-0.59},"Volume":{"Sustain":0.11,"Decay":0.231,"Master":1,"Attack":0.001,"Punch":0.28},"Vibrato":{"Depth":0.66,"Frequency":1.01},"Phaser":{"Offset":-0.39,"Sweep":0.36}},
@@ -440,6 +441,7 @@ let createPlayer=()=>{
   p.score=0;
 
   p.spawn=()=>{
+    SFX.spawn();
     p.prevX= p.x = RENDERER.width/2 - STAGE.x;
     p.prevY = p.y =-200;
     p.is_dead=false;
