@@ -1,5 +1,19 @@
 "use strict";
 
+Array.prototype.shuffle=function(){
+  let a=this,b,c=a.length,d;
+  while(c)b=Math.random()*c--|0,d=a[c],a[c]=a[b],a[b]=d;
+  return a;
+};
+
+
+let getNextPlayerColor;
+{ let colors=[0xFF0000,0xFF8800,0xFFFF00,0x00FF00,0xFF00FF,0x00FFFF,0x9900FF].shuffle(), i=colors.length;
+  getNextPlayerColor=()=>{
+    if (--i==-1) i=colors.length-1;
+    return colors[i];
+  }
+}
 
 let SFX = jsfx.Sounds({
   "fire":{"Frequency":{"Start":677,"Min":620,"Slide":-0.37,"Max":944,"DeltaSlide":0.09,"RepeatSpeed":0,"ChangeAmount":-9},"Generator":{"Func":"sine","A":0.34390365900407127,"ASlide":0.062089220640302936},"Phaser":{"Offset":-0.23,"Sweep":0.19},"Volume":{"Sustain":0.08,"Decay":0.081,"Attack":0.001,"Master":0.7},"Vibrato":{"Depth":0,"Frequency":1.01,"FrequencySlide":-1,"DepthSlide":-1}},
@@ -391,7 +405,8 @@ let PLAYERS=[];
 let createPlayer=()=>{
   let p = new PIXI.Graphics();
   STAGE.addChild(p);
-  p.beginFill(0x0e47a3);
+  p.playerColor=getNextPlayerColor();
+  p.beginFill(p.playerColor);
   p.lineStyle(1, 0x000000, 1);
   p.drawRect(0, 0, 4, 20);
   p.endFill();
@@ -611,22 +626,35 @@ let createPlayer=()=>{
 }
 
 
-let MSG = new PIXI.Text("", {
-  fontFamily: "monospace",
-  fontSize: 14,
-  fill: "white"
-});
-SCREEN.addChild(MSG);
-MSG.position.set(0, 0);
-MSG.update=()=>{
+let SCOREBOARD = new PIXI.Container();
+SCREEN.addChild(SCOREBOARD);
+SCOREBOARD.position.set(0,0);
+SCOREBOARD.update=()=>{
   if (IS_PAUSED) return;
-  let b = ''; 
-  for (let p of PLAYERS) {
-    b += p.score + '    ';
+  let i=0, width=200, x=RENDERER.width-width, c=SCOREBOARD.children;
+  for (let i=0,l=PLAYERS.length;i<l;++i) {
+    let s, p=PLAYERS[i];
+
+    // if a scoreboard element does not exist for player idx, create one
+    if (! c[i]) {
+      s = new PIXI.Text(p.score, { fontFamily: "monospace", align: 'right', fontSize: 40, fill: p.playerColor, dropShadowDistance:1, dropShadow:true, dropShadowBlur: 2 });
+      s.x = x - (i * width);
+      SCOREBOARD.addChild(s);
+    }
+
+    // else update player score
+    else {
+      s=c[i];
+      s.style.fill=p.playerColor;
+      s.text=p.score;
+    }
   }
 
-  MSG.text = b;
-}
+  // remove any remaining scoreboard elements
+  for (let i=c.length-1, l=PLAYERS.length; i>=l; --i) {
+    SCOREBOARD.removeChild(c[i]);
+  }
+};
 
 
 
