@@ -631,16 +631,18 @@ MSG.update=()=>{
 
 
 // game loop
-let T0=performance.now();
-let T1=0;
-let ELAPSED_TIME=0;
-let GAME_LOOP=(t1)=>{
-  T1=t1;
-  ELAPSED_TIME=T1-T0;
-  updateGamepads();
-  SCREEN.update();
-  RENDERER.render(SCREEN);
-  T0=T1;
-  requestAnimationFrame(GAME_LOOP);
-};
-GAME_LOOP(T0);
+let T0=0, T1=0, ELAPSED_TIME=0;
+{ let t0=performance.now(), loop=(t1)=>{
+    ELAPSED_TIME=t1-t0;
+    if (! IS_PAUSED) {
+      T0=T1;
+      T1+=ELAPSED_TIME;
+    }
+    updateGamepads();
+    SCREEN.update();
+    RENDERER.render(SCREEN);
+    requestAnimationFrame(loop);
+    t0=t1;
+  };
+  loop(t0);
+}
