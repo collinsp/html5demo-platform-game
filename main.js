@@ -185,7 +185,7 @@ STAGE.update=()=>{
   // find target x,y coords
   let x=0,y=0;
   for (let p of PLAYERS) {
-    if (p) {
+    if (p && ! p.is_dead) {
       totalPlayers++; 
       x+=p.x;
       y+=p.y;
@@ -326,9 +326,9 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
   let b = new PIXI.Graphics();
   STAGE.addChild(b);
   b.player=player;
-  b.beginFill(0x666666);
+  b.beginFill(player.playerColor);
   b.lineStyle(1, 0x00000, 1);
-  b.drawRect(0, 0, 2, 2);
+  b.drawRect(0, 0, 4, 4);
   b.endFill();
   b.startX=x;
   b.prevX=x;
@@ -365,8 +365,6 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
     // if bullet hits player
     for (let p of PLAYERS) {
       if (p!=b.player && hitTest(b, p)) {
-        p.score--;
-        if (p.score < 0) p.score=0;
         p.die();
         b.player.score++;
       }
