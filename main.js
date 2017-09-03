@@ -448,7 +448,7 @@ let createPlayer=()=>{
   p.spawn=()=>{
     SFX.spawn();
     p.prevX= p.x = RENDERER.width/2 - STAGE.x;
-    p.prevY = p.y = STAGE.y - 10;
+    p.prevY = p.y = -1*STAGE.y;
     p.is_dead=false;
     p.visible=true;
     p.ground=null;
