@@ -16,11 +16,11 @@ let getNextPlayerColor;
 }
 
 let SFX = jsfx.Sounds({
+  "point":{"Frequency":{"Start":1043.3438712734612,"ChangeSpeed":0.10879780798072744,"ChangeAmount":9.547207889817123},"Volume":{"Sustain":0.09806870832944409,"Decay":0.386858695064088,"Punch":0.3664459889035252,"Master":0.15}},
   "spawn":{"Frequency":{"Start":187,"Min":30,"Max":1800,"Slide":-0.45,"DeltaSlide":0.27111740058694034,"RepeatSpeed":2.4240420017375692,"ChangeAmount":-2,"ChangeSpeed":1},"Vibrato":{"Depth":0,"DepthSlide":-1,"Frequency":0.01,"FrequencySlide":-1},"Generator":{"Func":"string","A":0.5,"B":0.9461043322329408,"ASlide":-0.900955208690442,"BSlide":-0.23},"Guitar":{"A":0.37506791578452603,"B":0.38594375638192946,"C":0.07162987314436853},"Phaser":{"Offset":0.45,"Sweep":1},"Volume":{"Master":0.74,"Attack":0.001,"Sustain":0.94,"Punch":1.04,"Decay":1.551},"Filter":{"HPSlide":-0.66,"LPResonance":0,"HP":0.57,"LP":0.87}},
   "fire":{"Frequency":{"Start":677,"Min":620,"Slide":-0.37,"Max":944,"DeltaSlide":0.09,"RepeatSpeed":0,"ChangeAmount":-9},"Generator":{"Func":"sine","A":0.34390365900407127,"ASlide":0.062089220640302936},"Phaser":{"Offset":-0.23,"Sweep":0.19},"Volume":{"Sustain":0.08,"Decay":0.081,"Attack":0.001,"Master":0.7},"Vibrato":{"Depth":0,"Frequency":1.01,"FrequencySlide":-1,"DepthSlide":-1}},
   "die":{"Frequency":{"Start":186.6228670242122,"Slide":0},"Generator":{"Func":"noise"},"Phaser":{"Offset":-0.16281910187532175,"Sweep":-0.1803511833022753},"Volume":{"Sustain":0.12907184086420787,"Decay":0.48833081296121317,"Punch":0.5948980684527602}},
-  "jump":{"Frequency":{"Start":420,"Slide":0.45,"Min":182,"Max":1800,"DeltaSlide":-0.46,"ChangeAmount":-8},"Generator":{"Func":"square","A":0.57,"B":0.62},"Filter":{"LP":0.97,"LPSlide":0.49,"LPResonance":0.51,"HP":0.35,"HPSlide":-0.59},"Volume":{"Sustain":0.11,"Decay":0.231,"Master":1,"Attack":0.001,"Punch":0.28},"Vibrato":{"Depth":0.66,"Frequency":1.01},"Phaser":{"Offset":-0.39,"Sweep":0.36}},
-  "coin":{"Frequency":{"Start":949.1150495238256,"ChangeSpeed":0.1740790554080534,"ChangeAmount":8.592424353581652},"Volume":{"Sustain":0.0514287203640081,"Decay":0.4610013625529856,"Punch":0.5706840101500973}},"ouch":{"Frequency":{"Start":615.8666429888202,"Slide":-0.6511455150522687},"Generator":{"Func":"noise","A":0.5509203434632829,"ASlide":-0.2668800443572652},"Filter":{"HP":0.14044495208945543},"Volume":{"Sustain":0.008549238492461631,"Decay":0.20502770410478288}}
+  "jump":{"Frequency":{"Start":377,"Slide":0.25,"Max":815,"DeltaSlide":0.56,"RepeatSpeed":0,"ChangeAmount":0,"ChangeSpeed":0,"Min":30},"Generator":{"Func":"square","A":0.38,"BSlide":-1,"ASlide":-1},"Filter":{"HP":0,"LP":0.46,"HPSlide":-1,"LPSlide":0.68},"Volume":{"Sustain":0.05,"Decay":0.191,"Master":0.68,"Attack":0.001,"Punch":0.72},"Vibrato":{"DepthSlide":-0.39,"FrequencySlide":0.06}}
 });
 
 let RENDERER = PIXI.autoDetectRenderer(window.innerWidth,window.innerHeight);
@@ -368,6 +368,7 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
       if (! p.is_dead && p!=b.player && hitTest(b, p)) {
         p.die();
         b.player.score++;
+        setTimeout(SFX.point, 650);
       }
       
     }
@@ -437,13 +438,14 @@ let createPlayer=()=>{
   p.hitbox = [0,0,0,0];
   p.is_dead=true;
   p.respawn_ms = 3000;
-  p.can_respawn_ms = T1 + p.respawn_ms;
+  p.can_respawn_ms = T1;
   p.score=0;
+  p.bullet_speed=.8;
 
   p.spawn=()=>{
     SFX.spawn();
     p.prevX= p.x = RENDERER.width/2 - STAGE.x;
-    p.prevY = p.y =-200;
+    p.prevY = p.y = STAGE.y - 10;
     p.is_dead=false;
     p.visible=true;
     p.ground=null;
@@ -490,15 +492,15 @@ let createPlayer=()=>{
 
         // if no directionals pressed, fire in the direction player is facing
         if (!(p.input & (BUT_DOWN|BUT_UP|BUT_LEFT|BUT_RIGHT))) {
-          speed_x += 1 * p.facing;
+          speed_x += p.bullet_speed * p.facing;
         }
 
         // else fire in the direction the player is pressing
         else {
-          if (p.input & BUT_DOWN) speed_y += 1;
-          else if (p.input & BUT_UP) speed_y -= 1;
-          if (p.input & BUT_RIGHT) speed_x += 1;
-          else if (p.input & BUT_LEFT) speed_x -= 1;
+          if (p.input & BUT_DOWN) speed_y += p.bullet_speed;
+          else if (p.input & BUT_UP) speed_y -= p.bullet_speed;
+          if (p.input & BUT_RIGHT) speed_x += p.bullet_speed;
+          else if (p.input & BUT_LEFT) speed_x -= p.bullet_speed;
         }
         createBullet(p.x,p.y+10,speed_x,speed_y,p);
         SFX.fire();
