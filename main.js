@@ -306,9 +306,10 @@ createEnemy(400);
 createEnemy(500);
 
 let BULLETS=[];
-let createBullet=(x,y,speed_x,speed_y)=>{
+let createBullet=(x,y,speed_x,speed_y,player)=>{
   let b = new PIXI.Graphics();
   STAGE.addChild(b);
+  b.player=player;
   b.beginFill(0x666666);
   b.lineStyle(1, 0x00000, 1);
   b.drawRect(0, 0, 2, 2);
@@ -345,12 +346,13 @@ let createBullet=(x,y,speed_x,speed_y)=>{
 
     // if bullet hits player
     for (let p of PLAYERS) {
-      if (hitTest(b, p)) p.die();
+      if (p!=b.player && hitTest(b, p)) p.die();
     }
   };
 };
 
 let hitTest=(a,b)=>{
+/*
   let aLeft = (a.prevX + a.x)/2;
   let aRight = aLeft + a.width;
   let aTop = (a.prevY + a.y)/2;
@@ -359,6 +361,38 @@ let hitTest=(a,b)=>{
   let bRight = bLeft + b.width;
   let bTop = (b.prevY + b.y)/2;
   let bBottom = bTop + b.height;
+*/
+
+  let aLeft,aRight,aTop,aBottom,bLeft,bRight,bTop,bBottom;
+  if (a.x < a.prevX) {
+    aLeft=a.x;
+    aRight=a.prevX+a.width; 
+  } else {
+    aLeft=a.prevX;
+    aRight=a.x+a.width; 
+  }
+  if (a.y < a.prevY) {
+    aTop=a.y;
+    aBottom=a.prevY+a.height; 
+  } else {
+    aTop=a.prevY;
+    aBottom=a.y+a.height; 
+  }
+  if (b.x < b.prevX) {
+    bLeft=b.x;
+    bRight=b.prevX+b.width; 
+  } else {
+    bLeft=b.prevX;
+    bRight=b.x+b.width; 
+  }
+  if (b.y < b.prevY) {
+    bTop=b.y;
+    bBottom=b.prevY+b.height; 
+  } else {
+    bTop=b.prevY;
+    bBottom=b.y+b.height; 
+  }
+  
   return !(
     (aBottom < bTop)    ||
     (aTop    > bBottom) ||
@@ -446,7 +480,7 @@ let createPlayer=()=>{
           if (p.input & BUT_RIGHT) speed_x += 1;
           else if (p.input & BUT_LEFT) speed_x -= 1;
         }
-        createBullet(p.x,p.y+10,speed_x,speed_y);
+        createBullet(p.x,p.y+10,speed_x,speed_y,p);
         SFX.fire();
       }
 
