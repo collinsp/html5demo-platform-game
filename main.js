@@ -209,13 +209,15 @@ STAGE.update=()=>{
 }
 
 // make ground
-let GROUND = [];
+let GROUND=[], GROUND_MIN_Y=0, GROUND_MAX_Y=0;
 { let m=(x,y,w,h,color)=>{
     let g = new PIXI.Graphics();
     if (! x) x=0;
     if (! y) y=0;
     if (! w) w=200;
     if (! h) w=20;
+    if (y > GROUND_MAX_Y) GROUND_MAX_Y=y;
+    if (y < GROUND_MIN_Y) GROUND_MIN_Y=y;
     g.beginFill(color);
     g.drawRect(0, 0, w, h);
     g.endFill();
@@ -230,6 +232,10 @@ let GROUND = [];
   m(50,300,400,1,0x4f844e);
   m(80,400,80,1,0x4f844e);
   m(-200,440,2800,10,0x4f844e);
+
+  // add margin
+  GROUND_MIN_Y -= 200;
+  GROUND_MAX_Y += 200;
 }
 
 let BADGUYS=[];
@@ -240,7 +246,7 @@ let createEnemy=(x,y)=>{
   b.lineStyle(1, 0x00000, 1);
   b.drawRect(0, 0, 20, 20);
   b.endFill();
-  if (y==undefined) y=100;
+  if (y==undefined) y=GROUND_MIN_Y;
   b.startX=x;
   b.prevX=x;
   b.x=x;
@@ -301,7 +307,7 @@ let createEnemy=(x,y)=>{
 
     if (! b.ground) {
       // falling to death?
-      if (b.y > 2000) {
+      if (b.y > GROUND_MAX_Y) {
         b.destroy();
         return;
       }
@@ -311,7 +317,7 @@ let createEnemy=(x,y)=>{
     // if hits player
     else {
       for (let p of PLAYERS) {
-        if (hitTest(b, p)) {
+        if (! p.is_dead && hitTest(b, p)) {
           p.die(); 
         }
       }
@@ -415,8 +421,8 @@ let createPlayer=()=>{
   p.endFill();
   p.visible=false;
   p.ground = null;
-  p.x = p.prevX = 100;
-  p.y = p.prevY = 100;
+  p.x = p.prevX = undefined;
+  p.y = p.prevY = undefined;
   p.speed_x = 0;
   p.speed_y = 0;
   p.walk_acceleration_x = .0004;
@@ -451,7 +457,7 @@ let createPlayer=()=>{
     let middleOfScreen = RENDERER.width/2 - STAGE.x;
     middleOfScreen += Math.random()*256-128; // add randomness between -128 and 128
     p.prevX= p.x = middleOfScreen;
-    p.prevY = p.y = -1*STAGE.y;
+    p.prevY = p.y = GROUND_MIN_Y;
     p.is_dead=false;
     p.visible=true;
     p.ground=null;
@@ -483,8 +489,10 @@ let createPlayer=()=>{
       togglePause();
     }
 
-    // if player is dead, can they respawn
-    if (p.is_dead && T1 > p.can_respawn_ms && p.input) p.spawn();
+    // if player is dead, can they respawn?
+    if (p.is_dead && T1 > p.can_respawn_ms && p.input) {
+      p.spawn();
+    }
 
     if (! IS_PAUSED && ! p.is_dead) {
 
@@ -510,6 +518,12 @@ let createPlayer=()=>{
         }
         createBullet(p.x,p.y+10,speed_x,speed_y,p);
         SFX.fire();
+      }
+
+      // jump down
+      if (p.ground && (p.input&BUT_DOWN) && (p.input&BUT_JUMP) && !(p.prevInput&BUT_JUMP)) {
+        p.y += 5;
+        p.ground=null;
       }
 
       if (p.ground) {
@@ -621,9 +635,7 @@ let createPlayer=()=>{
       }
 
       // falling to death?
-      if (p.y > 2000) {
-        p.y = -100;
-        p.x = 100;
+      if (p.y > GROUND_MAX_Y) {
         p.die(); 
       }
 
