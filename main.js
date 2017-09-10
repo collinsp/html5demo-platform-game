@@ -224,24 +224,48 @@ STAGE.update=()=>{
 }
 
 // make ground
-let GROUND=[], GROUND_MIN_Y=0, GROUND_MAX_Y=0;
-{ let m=(x,y,w,h,color)=>{
+let GROUND=[], GROUND_MIN_Y=0, GROUND_MAX_Y=0, createGround;
+{ createGround=(x,y,w,h,color)=>{
     let g = new PIXI.Graphics();
     if (! x) x=0;
     if (! y) y=0;
-    if (! w) w=200;
-    if (! h) w=20;
+    if (! w) w=20;
+    if (! h) h=2;
+    g.color=color;
+    if (! g.color) g.color=0x4f844e;
     if (y > GROUND_MAX_Y) GROUND_MAX_Y=y;
     if (y < GROUND_MIN_Y) GROUND_MIN_Y=y;
-    g.beginFill(color);
+    g.beginFill(g.color);
+    g.lineStyle(1, 0x00000, 1);
     g.drawRect(0, 0, w, h);
     g.endFill();
     g.x=x;
     g.y=y;
     g.climbable = false;
+
+    g.redefine=(def)=>{
+      if (def.x!=undefined) g.x=def.x;
+      if (def.y!=undefined) g.y=def.y;
+      if (def.color!=undefined) g.color=def.color;
+      let w=(def.w!=undefined) ? def.w : g.width;
+      let h=(def.h!=undefined) ? def.h : g.height;
+      g.clear();
+      g.beginFill(g.color);
+      g.drawRect(0, 0, w, h);
+      g.lineStyle(1, 0x00000, 1);
+      g.endFill();
+    };
+    g.destroy=()=>{
+      STAGE.removeChild(g);
+      let i = GROUND.indexOf(g);
+      if (i!=-1) GROUND.splice(i, 1);
+    }
     STAGE.addChild(g);
     GROUND.push(g);
+    return g;
   }
+
+  let m=createGround;
   m(40,100,50,1,0x4f844e);
   m(100,200,90,1,0x4f844e);
   m(50,300,400,1,0x4f844e);
@@ -493,6 +517,9 @@ let createPlayer=()=>{
   p.keypress=(k)=>{ return (p.input & k) && !(p.prevInput & k); };
   p.input=0;
   p.prevInput=0;
+
+  p.editingObject=null;
+
   p.update=()=>{
 
     // if player hit pause key
@@ -501,8 +528,27 @@ let createPlayer=()=>{
     }
 
     if (IS_PAUSED) {
-      let speed_x=0, speed_y=0;
 
+      // add a new platform?
+      if (p.keypress(BUT_Y)) {
+        // done editing?
+        if (p.editingObject) {
+          p.editingObject=null;
+        }
+
+        // create object
+        else {
+          p.editingObject = createGround(p.x, p.y + p.height);
+        }
+      }
+
+      // cancel edit
+      if (p.editingObject && p.keypress(BUT_B)) {
+        p.editingObject.destroy();
+        p.editingObject=null;
+      }
+
+      let speed_x=0, speed_y=0;
       if (p.input & BUT_RIGHT) speed_x =  p.input & BUT_X ? p.run_max_speed : p.walk_max_speed;
       if (p.input & BUT_LEFT)  speed_x = (p.input & BUT_X ? p.run_max_speed : p.walk_max_speed) * -1;
       if (p.input & BUT_DOWN)  speed_y =  p.input & BUT_X ? p.run_max_speed : p.walk_max_speed;
@@ -510,6 +556,23 @@ let createPlayer=()=>{
 
       p.x += speed_x * ELAPSED_TIME;
       p.y += speed_y * ELAPSED_TIME;
+
+      // move / resize editing object
+      if (p.editingObject) {
+        let def = {};
+        if (p.x < p.editingObject.x) {
+          def.x = p.x;
+        } else if (p.x - p.prevX > 0) {
+          def.w = p.editingObject.width + (p.x-p.prevX);
+        }
+        if (p.y+p.height < p.editingObject.y) { 
+          def.y = p.y + p.height;
+        } else if (p.y - p.prevY > 0) {
+          def.h = p.editingObject.height + (p.y-p.prevY);
+        }
+        p.editingObject.redefine(def);
+      }
+
       p.prevX = p.x;
       p.prevY = p.y;
     }
