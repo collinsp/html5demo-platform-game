@@ -84,7 +84,7 @@ let updateGamepads=()=>{
     if (! gp) {
       // if player exists, destroy player
       if (gamePadPlayerIdxMap[i]) {
-        let p = PLAYERS[gamePadPlayerIdxMap[i]];
+        let p = PLAYERS.children[gamePadPlayerIdxMap[i]];
         p.destroy();
         gamePadPlayerIdxMap[i]=undefined;
       }
@@ -95,7 +95,7 @@ let updateGamepads=()=>{
     if (gamePadPlayerIdxMap[i]==undefined) {
       gamePadPlayerIdxMap[i]=createPlayer();
     }
-    let p = PLAYERS[gamePadPlayerIdxMap[i]];
+    let p = PLAYERS.children[gamePadPlayerIdxMap[i]];
 
     // update gamepad input
     p.input=0;
@@ -131,7 +131,7 @@ window.addEventListener("keydown", (e)=>{
   if (keyboardPlayerIdx===null) return;
 
   // update the player input mask
-  let p = PLAYERS[keyboardPlayerIdx];
+  let p = PLAYERS.children[keyboardPlayerIdx];
   p.input |=  
     (k==32 && BUT_A) ||
     (k==0  && BUT_B) ||
@@ -154,7 +154,7 @@ window.addEventListener("keydown", (e)=>{
 window.addEventListener("keyup", (e)=>{
   if (keyboardPlayerIdx===null) return;
   let k = e.keyCode;
-  let p = PLAYERS[keyboardPlayerIdx];
+  let p = PLAYERS.children[keyboardPlayerIdx];
 
   // update the player input mask
   p.input &= ~( 
@@ -197,13 +197,12 @@ STAGE.camera_y_speed=.005;
 SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   updateChildren(STAGE);
-//  if (IS_PAUSED) return;
 
   let totalPlayers = 0;
 
   // find target x,y coords
   let x=0,y=0;
-  for (let p of PLAYERS) {
+  for (let p of PLAYERS.children) {
     if (p && ! p.is_dead) {
       totalPlayers++; 
       x+=p.x;
@@ -224,7 +223,10 @@ STAGE.update=()=>{
 }
 
 // make ground
-let GROUND=[], GROUND_MIN_Y=0, GROUND_MAX_Y=0, createGround;
+let GROUND_MIN_Y=0, GROUND_MAX_Y=0, createGround;
+let GROUND = new PIXI.Container();
+STAGE.addChild(GROUND);
+GROUND.update=()=>{ updateChildren(GROUND); }
 { createGround=(x,y,w,h,color)=>{
     let g = new PIXI.Graphics();
     if (! x) x=0;
@@ -256,12 +258,9 @@ let GROUND=[], GROUND_MIN_Y=0, GROUND_MAX_Y=0, createGround;
       g.endFill();
     };
     g.destroy=()=>{
-      STAGE.removeChild(g);
-      let i = GROUND.indexOf(g);
-      if (i!=-1) GROUND.splice(i, 1);
+      GROUND.removeChild(g);
     }
-    STAGE.addChild(g);
-    GROUND.push(g);
+    GROUND.addChild(g);
     return g;
   }
 
@@ -335,7 +334,7 @@ let createEnemy=(x,y)=>{
 
     } else {
       // look for a ground
-      for (let g of GROUND) {
+      for (let g of GROUND.children) {
         if ((b.x >= g.x && b.x <= (g.x + g.width)) && 
             (b.prevY+b.height <= g.y && b.y+b.height >= g.y)) {
           b.ground = g;
@@ -355,7 +354,7 @@ let createEnemy=(x,y)=>{
 
     // if hits player
     else {
-      for (let p of PLAYERS) {
+      for (let p of PLAYERS.children) {
         if (! p.is_dead && hitTest(b, p)) {
           p.die(); 
         }
@@ -412,7 +411,7 @@ let createBullet=(x,y,speed_x,speed_y,player)=>{
     }
 
     // if bullet hits player
-    for (let p of PLAYERS) {
+    for (let p of PLAYERS.children) {
       if (! p.is_dead && p!=b.player && hitTest(b, p)) {
         p.die();
         b.player.score++;
@@ -449,10 +448,11 @@ let updateHitBox=(o)=>{
   }
 };
 
-let PLAYERS=[];
+let PLAYERS = new PIXI.Container();
+PLAYERS.update=()=>{ updateChildren(PLAYERS); }
+STAGE.addChild(PLAYERS);
 let createPlayer=()=>{
   let p = new PIXI.Graphics();
-  STAGE.addChild(p);
   p.playerColor=getNextPlayerColor();
   p.beginFill(p.playerColor);
   p.lineStyle(1, 0x000000, 1);
@@ -509,9 +509,7 @@ let createPlayer=()=>{
   };
 
   p.destroy=()=>{
-    STAGE.removeChild(p);
-    let i = PLAYERS.indexOf(p);
-    if (i!=-1) PLAYERS.splice(i, 1);
+    PLAYERS.removeChild(p);
   };
 
   p.keypress=(k)=>{ return (p.input & k) && !(p.prevInput & k); };
@@ -721,7 +719,7 @@ let createPlayer=()=>{
           p.speed_y=0;
         } else {
           // look for a ground
-          for (let g of GROUND) {
+          for (let g of GROUND.children) {
             if ((p.x >= g.x && p.x <= (g.x + g.width)) && 
                 (p.prevY+p.height <= g.y && p.y+p.height >= g.y)) {
               p.ground = g;
@@ -744,8 +742,8 @@ let createPlayer=()=>{
   }; // END p.update
 
   // add new player to PLAYERS array and return PLAYERS idx
-  let i = PLAYERS.length;
-  PLAYERS[i]=p;
+  let i = PLAYERS.children.length;
+  PLAYERS.addChild(p);
   return i;
 } // END createPlayer
 
@@ -756,8 +754,8 @@ SCOREBOARD.position.set(0,0);
 SCOREBOARD.update=()=>{
   if (IS_PAUSED) return;
   let i=0, width=200, x=RENDERER.width-width, c=SCOREBOARD.children;
-  for (let i=0,l=PLAYERS.length;i<l;++i) {
-    let s, p=PLAYERS[i];
+  for (let i=0,l=PLAYERS.children.length;i<l;++i) {
+    let s, p=PLAYERS.children[i];
 
     // if a scoreboard element does not exist for player idx, create one
     if (! c[i]) {
@@ -775,7 +773,7 @@ SCOREBOARD.update=()=>{
   }
 
   // remove any remaining scoreboard elements
-  for (let i=c.length-1, l=PLAYERS.length; i>=l; --i) {
+  for (let i=c.length-1, l=PLAYERS.children.length; i>=l; --i) {
     SCOREBOARD.removeChild(c[i]);
   }
 };
