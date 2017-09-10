@@ -669,6 +669,7 @@ let createPlayer=()=>{
   
         // falling to death?
         if (p.y > GROUND_MAX_Y) {
+          if (p.score > 0) p.score--;
           p.die(); 
         }
   
