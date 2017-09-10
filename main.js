@@ -253,8 +253,8 @@ GROUND.update=()=>{ updateChildren(GROUND); }
       let h=(def.h!=undefined) ? def.h : g.height;
       g.clear();
       g.beginFill(g.color);
-      g.drawRect(0, 0, w, h);
       g.lineStyle(1, 0x00000, 1);
+      g.drawRect(0, 0, w, h);
       g.endFill();
     };
     g.destroy=()=>{
