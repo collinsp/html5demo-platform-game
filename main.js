@@ -29,7 +29,6 @@ RENDERER.backgroundColor = 0x7cd3ff;
 document.body.appendChild(RENDERER.view);
 window.addEventListener("resize",()=>{RENDERER.resize(window.innerWidth,window.innerHeight);});
 
-
 // pause button
 let IS_PAUSED=false;
 let PAUSE_MSG = new PIXI.Text("PAUSED", {
@@ -53,59 +52,69 @@ let togglePause=()=>{
 }
 
 // use input mask to store the state of buttons
+// (bit shift matches xbox controller buttons array)
+// xbox axes = [ L-stick-x-axis, L-stick-y-axis, R-stick-x-axis, R-stick-y-axis ]
 let
-  BUT_UP     =1<<0,
-  BUT_DOWN   =1<<1,
-  BUT_LEFT   =1<<2,
-  BUT_RIGHT  =1<<3,
-  BUT_RUN    =1<<4,
-  BUT_JUMP   =1<<5,
-  BUT_FIRE   =1<<6,
-  BUT_SHEILD =1<<7,
-  BUT_MISSILE=1<<8,
-  BUT_BOMB   =1<<9,
-  BUT_START  =1<<10,
-  BUT_SELECT =1<<11;
+  BUT_A       =1<<0,
+  BUT_B       =1<<1,
+  BUT_X       =1<<2,
+  BUT_Y       =1<<3,
+  BUT_L_BUMP  =1<<4,
+  BUT_R_BUMP  =1<<5,
+  BUT_L_TRIG  =1<<6, 
+  BUT_R_TRIG  =1<<7, 
+  BUT_BACK    =1<<8, 
+  BUT_START   =1<<9, 
+  BUT_L_STICK =1<<10,
+  BUT_R_STICK =1<<11,
+  BUT_UP      =1<<12,
+  BUT_DOWN    =1<<13,
+  BUT_LEFT    =1<<14,
+  BUT_RIGHT   =1<<15;
 
 
 // gamepad and keyboard controllers
 let gamePadPlayerIdxMap=[];
 let updateGamepads=()=>{
   let gps = navigator.getGamepads();
-  for (let i=0,l=gps.length; i<l; ++i) {
-    // if gampepad is active
-    if (gps[i]) {
-      if (gamePadPlayerIdxMap[i]==undefined) {
-        gamePadPlayerIdxMap[i]=createPlayer();
+  for (let i=gps.length-1; i>=0; --i) {
+    let gp=gps[i];
+
+    // if gamepad does not exist
+    if (! gp) {
+      // if player exists, destroy player
+      if (gamePadPlayerIdxMap[i]) {
+        let p = PLAYERS[gamePadPlayerIdxMap[i]];
+        p.destroy();
+        gamePadPlayerIdxMap[i]=undefined;
       }
-      let p = PLAYERS[gamePadPlayerIdxMap[i]];
-      let b = gps[i].buttons;
-      p.input =  
-        (b[12].pressed && BUT_UP) |
-        (b[13].pressed && BUT_DOWN) |
-        (b[14].pressed && BUT_LEFT) |
-        (b[15].pressed && BUT_RIGHT) |
-        (b[ 2].pressed && BUT_RUN) |
-        (b[ 0].pressed && BUT_JUMP) |
-        (b[ 7].pressed && BUT_FIRE) |
-        (b[ 6].pressed && BUT_SHEILD) |
-        (b[ 5].pressed && BUT_MISSILE) |
-        (b[ 4].pressed && BUT_BOMB) |
-        (b[13].pressed && BUT_DOWN) |
-        (b[ 9].pressed && BUT_START) |
-        (b[ 8].pressed && BUT_SELECT);
+      continue;
     }
 
-    // else inactive
-    else if (gamePadPlayerIdxMap[i]) {
-      let p = PLAYERS[gamePadPlayerIdxMap[i]];
-      p.destroy();
-      gamePadPlayerIdxMap[i]=undefined;
+    // if player for gamepad does not exist, create it
+    if (gamePadPlayerIdxMap[i]==undefined) {
+      gamePadPlayerIdxMap[i]=createPlayer();
     }
+    let p = PLAYERS[gamePadPlayerIdxMap[i]];
+
+    // update gamepad input
+    p.input=0;
+    for (let but_i=gp.buttons.length-1;but_i>=0;--but_i) {
+      p.input |= gp.buttons[but_i].pressed && (1<<but_i);
+    }
+
+    // use analog left stick as directional movement
+    let a = gp.axes;
+    p.input |=
+      (a[0]> .3 && BUT_RIGHT) |
+      (a[0]<-.3 && BUT_LEFT)  |
+      (a[1]<-.3 && BUT_UP)   |
+      (a[1]> .3 && BUT_DOWN);
   }
 };
 
 let keyboardPlayerIdx=null;
+
 window.addEventListener("keydown", (e)=>{
 //console.log(e.keyCode);
   let k = e.keyCode;
@@ -124,19 +133,22 @@ window.addEventListener("keydown", (e)=>{
   // update the player input mask
   let p = PLAYERS[keyboardPlayerIdx];
   p.input |=  
+    (k==32 && BUT_A) ||
+    (k==0  && BUT_B) ||
+    (k==16 && BUT_X) ||
+    (k==0  && BUT_Y) ||
+    (k==0  && BUT_L_BUMP)  ||
+    (k==0  && BUT_R_BUMP)  ||
+    (k==0  && BUT_L_TRIG)  ||
+    (k==17 && BUT_R_TRIG)  ||
+    (k==0  && BUT_BACK)    ||
+    (k==0  && BUT_START)   ||
+    (k==0  && BUT_L_STICK) ||
+    (k==0  && BUT_R_STICK) ||
     (k==38 && BUT_UP)      ||
     (k==40 && BUT_DOWN)    ||
     (k==37 && BUT_LEFT)    ||
-    (k==39 && BUT_RIGHT)   ||
-    (k==16 && BUT_RUN)     ||
-    (k==32 && BUT_JUMP)    ||
-    (k==17 && BUT_FIRE)    ||
-    (k== 0 && BUT_SHEILD)  ||
-    (k== 0 && BUT_MISSILE) ||
-    (k== 0 && BUT_BOMB)    ||
-    (k== 0 && BUT_DOWN)    ||
-    (k== 0 && BUT_START)   ||
-    (k== 0 && BUT_SELECT);
+    (k==39 && BUT_RIGHT);
 });
 
 window.addEventListener("keyup", (e)=>{
@@ -146,19 +158,22 @@ window.addEventListener("keyup", (e)=>{
 
   // update the player input mask
   p.input &= ~( 
+    (k==32 && BUT_A) ||
+    (k==0  && BUT_B) ||
+    (k==16 && BUT_X) ||
+    (k==0  && BUT_Y) ||
+    (k==0  && BUT_L_BUMP)  ||
+    (k==0  && BUT_R_BUMP)  ||
+    (k==0  && BUT_L_TRIG)  ||
+    (k==17 && BUT_R_TRIG)  ||
+    (k==0  && BUT_BACK)    ||
+    (k==0  && BUT_START)   ||
+    (k==0  && BUT_L_STICK) ||
+    (k==0  && BUT_R_STICK) ||
     (k==38 && BUT_UP)      ||
     (k==40 && BUT_DOWN)    ||
     (k==37 && BUT_LEFT)    ||
-    (k==39 && BUT_RIGHT)   ||
-    (k==16 && BUT_RUN)     ||
-    (k==32 && BUT_JUMP)    ||
-    (k==17 && BUT_FIRE)    ||
-    (k== 0 && BUT_SHEILD)  ||
-    (k== 0 && BUT_MISSILE) ||
-    (k== 0 && BUT_BOMB)    ||
-    (k== 0 && BUT_DOWN)    ||
-    (k== 0 && BUT_START)   ||
-    (k== 0 && BUT_SELECT) );
+    (k==39 && BUT_RIGHT)  );;
 });
 
 
@@ -182,7 +197,7 @@ STAGE.camera_y_speed=.005;
 SCREEN.addChild(STAGE);
 STAGE.update=()=>{
   updateChildren(STAGE);
-  if (IS_PAUSED) return;
+//  if (IS_PAUSED) return;
 
   let totalPlayers = 0;
 
@@ -425,18 +440,13 @@ let createPlayer=()=>{
   p.y = p.prevY = undefined;
   p.speed_x = 0;
   p.speed_y = 0;
-  p.walk_acceleration_x = .0004;
-  p.walk_acceleration_y = .0004;
-  p.run_acceleration_x = .0008;
-  p.run_acceleration_y = .0008;
-  p.stop_acceleration_x = .001;
-  p.stop_acceleration_y = .0008;
+  p.walk_acceleration = .0004;
+  p.run_acceleration = .0008;
+  p.stop_acceleration = .001;
   p.fall_acceleration_y = .002;
   p.fall_acceleration_x = .0004;
-  p.walk_max_speed_x = .2;
-  p.walk_max_speed_y = .2;
-  p.run_max_speed_x = .4;
-  p.run_max_speed_y = .4;
+  p.walk_max_speed = .2;
+  p.run_max_speed = .4;
   p.start_jump_speed = .5;
   p.continue_jump_speed = .001;
   p.continue_jump_ms = 900;
@@ -480,173 +490,200 @@ let createPlayer=()=>{
     if (i!=-1) PLAYERS.splice(i, 1);
   };
 
+  p.keypress=(k)=>{ return (p.input & k) && !(p.prevInput & k); };
   p.input=0;
   p.prevInput=0;
   p.update=()=>{
 
     // if player hit pause key
-    if (p.input & BUT_START && !(p.prevInput & BUT_START)) {
+    if (p.keypress(BUT_START)) {
       togglePause();
     }
 
-    // if player is dead, can they respawn?
-    if (p.is_dead && T1 > p.can_respawn_ms && p.input) {
-      p.spawn();
+    if (IS_PAUSED) {
+      let speed_x=0, speed_y=0;
+
+      if (p.input & BUT_RIGHT) speed_x =  p.input & BUT_X ? p.run_max_speed : p.walk_max_speed;
+      if (p.input & BUT_LEFT)  speed_x = (p.input & BUT_X ? p.run_max_speed : p.walk_max_speed) * -1;
+      if (p.input & BUT_DOWN)  speed_y =  p.input & BUT_X ? p.run_max_speed : p.walk_max_speed;
+      if (p.input & BUT_UP)    speed_y = (p.input & BUT_X ? p.run_max_speed : p.walk_max_speed) * -1;
+
+      p.x += speed_x * ELAPSED_TIME;
+      p.y += speed_y * ELAPSED_TIME;
+      p.prevX = p.x;
+      p.prevY = p.y;
     }
 
-    if (! IS_PAUSED && ! p.is_dead) {
-
-      if (p.input & BUT_LEFT) p.facing=-1;
-      else if (p.input & BUT_RIGHT) p.facing=1;
-
-      if (p.input & BUT_FIRE && T1 >= p.next_fire_time) {
-        p.next_fire_time = T1 + p.fire_delay;
-        let speed_x = p.speed_x;
-        let speed_y = p.speed_y;
-
-        // if no directionals pressed, fire in the direction player is facing
-        if (!(p.input & (BUT_DOWN|BUT_UP|BUT_LEFT|BUT_RIGHT))) {
-          speed_x += p.bullet_speed * p.facing;
-        }
-
-        // else fire in the direction the player is pressing
-        else {
-          if (p.input & BUT_DOWN) speed_y += p.bullet_speed;
-          else if (p.input & BUT_UP) speed_y -= p.bullet_speed;
-          if (p.input & BUT_RIGHT) speed_x += p.bullet_speed;
-          else if (p.input & BUT_LEFT) speed_x -= p.bullet_speed;
-        }
-        createBullet(p.x,p.y+10,speed_x,speed_y,p);
-        SFX.fire();
+    if (! IS_PAUSED) {
+      // if player is dead, can they respawn?
+      if (p.is_dead && T1 > p.can_respawn_ms && p.input) {
+        p.spawn();
       }
 
-      // jump down
-      if (p.ground && (p.input&BUT_DOWN) && (p.input&BUT_JUMP) && !(p.prevInput&BUT_JUMP)) {
-        p.y += 5;
-        p.ground=null;
-      }
+      // if player is alive
+      if (! p.is_dead) {
 
-      if (p.ground) {
+        // update direction player is facing
+        if (p.input & BUT_LEFT) p.facing=-1;
+        else if (p.input & BUT_RIGHT) p.facing=1;
   
-        // handle walk/run x axis movement
-        if (p.input & BUT_RIGHT && p.speed_x >= 0) {
-          if (p.input & BUT_RUN) {
-            p.speed_x += p.run_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x > p.run_max_speed_x) {
-              p.speed_x=p.run_max_speed_x;
-            }
-          } else {
-            p.speed_x += p.walk_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x > p.walk_max_speed_x) {
-              p.speed_x=p.walk_max_speed_x;
-            }
+        // handle player shoot gun
+        if (p.input & BUT_R_TRIG && T1 >= p.next_fire_time) {
+          p.next_fire_time = T1 + p.fire_delay;
+          let speed_x = p.speed_x;
+          let speed_y = p.speed_y;
+  
+          // if no directionals pressed, fire in the direction player is facing
+          if (!(p.input & (BUT_DOWN|BUT_UP|BUT_LEFT|BUT_RIGHT))) {
+            speed_x += p.bullet_speed * p.facing;
           }
-        } else if (p.input & BUT_LEFT && p.speed_x <= 0) {
-          if (p.input & BUT_RUN) {
-            p.speed_x -= p.run_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x < (p.run_max_speed_x * -1)) {
-              p.speed_x=p.run_max_speed_x * -1;
-            }
-          } else {
-            p.speed_x -= p.walk_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x < (p.walk_max_speed_x * -1)) {
-              p.speed_x=p.walk_max_speed_x * -1;
-            }
+  
+          // else fire in the direction the player is pressing
+          else {
+            if (p.input & BUT_DOWN) speed_y += p.bullet_speed;
+            else if (p.input & BUT_UP) speed_y -= p.bullet_speed;
+            if (p.input & BUT_RIGHT) speed_x += p.bullet_speed;
+            else if (p.input & BUT_LEFT) speed_x -= p.bullet_speed;
           }
-        } else if (p.speed_x > 0) {
-          p.speed_x -= p.stop_acceleration_x * ELAPSED_TIME;
-          if (p.speed_x < 0) p.speed_x=0;
-        } else if (p.speed_x < 0) {
-          p.speed_x += p.stop_acceleration_x * ELAPSED_TIME;
-          if (p.speed_x > 0) p.speed_x=0;
+          createBullet(p.x,p.y+10,speed_x,speed_y,p);
+          SFX.fire();
         }
   
-        // handle y movement (climbing)
-        if (p.input & BUT_DOWN && p.speed_y >= 0) {
-          p.speed_y += p.walk_acceleration_y * ELAPSED_TIME;
-        } else if (p.input & BUT_UP && p.speed_y <= 0) {
-          p.speed_y -= p.walk_acceleration_y * ELAPSED_TIME;
-        } else if (p.speed_y > 0) {
-          p.speed_y -= p.stop_acceleration_y * ELAPSED_TIME;
-          if (p.speed_y < 0) p.speed_y=0;
-        } else if (p.speed_y < 0) {
-          p.speed_y += p.stop_acceleration_y * ELAPSED_TIME;
-          if (p.speed_y > 0) p.speed_y=0;
-        }
-    
-        // handle jump
-        if (p.input & BUT_JUMP && !(p.prevInput & BUT_JUMP)) {
-          SFX.jump();
+        // handle jump down from current platform
+        if (p.ground && (p.input&BUT_DOWN) && (p.input&BUT_A) && !(p.prevInput&BUT_A)) {
+          p.y += 5;
           p.ground=null;
-          p.jump_end = T1 + p.continue_jump_ms;
-          p.speed_y = p.start_jump_speed * -1;
         }
-      }
-    
-      // handle falling
-      else {
-        p.speed_y += p.fall_acceleration_y * ELAPSED_TIME; 
-    
-        // handle x movement
-        if (p.input & BUT_RIGHT && p.speed_x >= 0) {
-          p.speed_x += p.fall_acceleration_x * ELAPSED_TIME;
-          if (p.speed_x > p.run_max_speed_x) {
-            p.speed_x=p.run_max_speed_x;
+  
+        // if standing on ground
+        if (p.ground) {
+  
+          // handle walk/run x axis movement
+          if (p.input & BUT_RIGHT && p.speed_x >= 0) {
+            if (p.input & BUT_X) {
+              p.speed_x += p.run_acceleration * ELAPSED_TIME;
+              if (p.speed_x > p.run_max_speed) {
+                p.speed_x=p.run_max_speed;
+              }
+            } else {
+              p.speed_x += p.walk_acceleration * ELAPSED_TIME;
+              if (p.speed_x > p.walk_max_speed) {
+                p.speed_x=p.walk_max_speed;
+              }
+            }
+          } else if (p.input & BUT_LEFT && p.speed_x <= 0) {
+            if (p.input & BUT_X) {
+              p.speed_x -= p.run_acceleration * ELAPSED_TIME;
+              if (p.speed_x < (p.run_max_speed * -1)) {
+                p.speed_x=p.run_max_speed * -1;
+              }
+            } else {
+              p.speed_x -= p.walk_acceleration * ELAPSED_TIME;
+              if (p.speed_x < (p.walk_max_speed * -1)) {
+                p.speed_x=p.walk_max_speed * -1;
+              }
+            }
+          } else if (p.speed_x > 0) {
+            p.speed_x -= p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_x < 0) p.speed_x=0;
+          } else if (p.speed_x < 0) {
+            p.speed_x += p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_x > 0) p.speed_x=0;
           }
-        } else if (p.input & BUT_LEFT && p.speed_x <= 0) {
-          p.speed_x -= p.fall_acceleration_x * ELAPSED_TIME;
-          if (p.speed_x < p.run_max_speed_x * -1) {
-            p.speed_x=p.run_max_speed_x * -1;
+    
+          // handle y movement (climbing)
+          if (p.input & BUT_DOWN && p.speed_y >= 0) {
+            p.speed_y += p.walk_acceleration * ELAPSED_TIME;
+          } else if (p.input & BUT_UP && p.speed_y <= 0) {
+            p.speed_y -= p.walk_acceleration * ELAPSED_TIME;
+          } else if (p.speed_y > 0) {
+            p.speed_y -= p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_y < 0) p.speed_y=0;
+          } else if (p.speed_y < 0) {
+            p.speed_y += p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_y > 0) p.speed_y=0;
+          }
+      
+          // handle jump
+          if (p.input & BUT_A && !(p.prevInput & BUT_A)) {
+            SFX.jump();
+            p.ground=null;
+            p.jump_end = T1 + p.continue_jump_ms;
+            p.speed_y = p.start_jump_speed * -1;
           }
         }
-    
-        if (p.input & BUT_JUMP) {
-          if (T1 > 0 && T1 < p.jump_end) {
+      
+        // handle falling
+        else {
+          // apply gravity to downward speed
+          p.speed_y += p.fall_acceleration_y * ELAPSED_TIME; 
+      
+          // allow player to "swim" a little bit in the air using x axis movement for fun physics
+          if (p.input & BUT_RIGHT && p.speed_x >= 0) {
+            p.speed_x += p.fall_acceleration_x * ELAPSED_TIME;
+            if (p.speed_x > p.run_max_speed) {
+              p.speed_x=p.run_max_speed;
+            }
+          } else if (p.input & BUT_LEFT && p.speed_x <= 0) {
+            p.speed_x -= p.fall_acceleration_x * ELAPSED_TIME;
+            if (p.speed_x < p.run_max_speed * -1) {
+              p.speed_x=p.run_max_speed * -1;
+            }
+          }
+      
+          // if user is holding the jump button, continue jump upward speed if jump time hasn't ended
+          if (p.input & BUT_A && T1 > 0 && T1 < p.jump_end) {
             p.speed_y -= (p.continue_jump_speed * ELAPSED_TIME);
           }
         }
-      }
-  
-      // update position
-      p.prevX = p.x;
-      p.prevY = p.y;
-      p.x += p.speed_x * ELAPSED_TIME;
-      p.y += p.speed_y * ELAPSED_TIME;
-      updateHitBox(p);
+    
+        // at this point speed calculations are complete, update player position
+        p.prevX = p.x;
+        p.prevY = p.y;
+        p.x += p.speed_x * ELAPSED_TIME;
+        p.y += p.speed_y * ELAPSED_TIME;
 
-      // is the ground still valid
-      if (p.ground && (p.x < p.ground.x || (p.x > p.ground.x + p.ground.width))) {
-        p.ground=null;
-      }
+        // now handle events that depend on player location
+        // a hitbox is used to outline the player space between this update and last update
+        updateHitBox(p);
   
-      // handle ground
-      if (p.ground) {
-        p.y = p.ground.y-p.height;
-        p.speed_y=0;
-      } else {
-        // look for a ground
-        for (let g of GROUND) {
-          if ((p.x >= g.x && p.x <= (g.x + g.width)) && 
-              (p.prevY+p.height <= g.y && p.y+p.height >= g.y)) {
-            p.ground = g;
-            break;
+        // is the ground still valid
+        if (p.ground && (p.x < p.ground.x || (p.x > p.ground.x + p.ground.width))) {
+          p.ground=null;
+        }
+    
+        // handle ground
+        if (p.ground) {
+          p.y = p.ground.y-p.height;
+          p.speed_y=0;
+        } else {
+          // look for a ground
+          for (let g of GROUND) {
+            if ((p.x >= g.x && p.x <= (g.x + g.width)) && 
+                (p.prevY+p.height <= g.y && p.y+p.height >= g.y)) {
+              p.ground = g;
+              break;
+            }
           }
         }
+  
+        // falling to death?
+        if (p.y > GROUND_MAX_Y) {
+          p.die(); 
+        }
+  
       }
+    } // END ! IS_PAUSED
 
-      // falling to death?
-      if (p.y > GROUND_MAX_Y) {
-        p.die(); 
-      }
-
-    } 
+    // remember previous player input
     p.prevInput=p.input;
-  }
+  }; // END p.update
 
+  // add new player to PLAYERS array and return PLAYERS idx
   let i = PLAYERS.length;
   PLAYERS[i]=p;
   return i;
-}
+} // END createPlayer
 
 
 let SCOREBOARD = new PIXI.Container();
