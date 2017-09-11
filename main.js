@@ -226,6 +226,13 @@ STAGE.update=()=>{
 let GROUND_MIN_Y=0, GROUND_MAX_Y=0, createGround;
 let GROUND = new PIXI.Container();
 STAGE.addChild(GROUND);
+GROUND.exportdat=()=>{
+  let dat=[], f=Math.floor;
+  for (let g of GROUND.children) {
+    dat.push([f(g.x),f(g.y),f(g.width),f(g.height),g.color]);
+  }
+  console.log(JSON.stringify(dat));
+}
 GROUND.update=()=>{ updateChildren(GROUND); }
 { createGround=(x,y,w,h,color)=>{
     let g = new PIXI.Graphics();
@@ -264,12 +271,10 @@ GROUND.update=()=>{ updateChildren(GROUND); }
     return g;
   }
 
-  let m=createGround;
-  m(40,100,50,1,0x4f844e);
-  m(100,200,90,1,0x4f844e);
-  m(50,300,400,1,0x4f844e);
-  m(80,400,80,1,0x4f844e);
-  m(-200,440,2800,10,0x4f844e);
+  let defaultGround = [[40,100,51,2,5211214],[100,200,91,2,5211214],[50,300,401,2,5211214],[80,400,81,2,5211214],[-200,440,2801,11,5211214],[552,289,84,66,5211214],[658,399,57,33,5211214],[722,333,207,43,5211214],[275,329,201,96,5211214],[321,126,101,79,5211214],[358,253,47,29,5211214],[452,203,67,46,5211214],[525,143,57,39,5211214],[632,89,71,53,5211214],[718,16,81,56,5211214],[578,-54,91,69,5211214],[425,-44,117,93,5211214],[775,-28,84,26,5211214],[185,6,94,76,5211214],[-72,179,87,69,5211214],[-132,283,111,93,5211214]];
+  for (let e of defaultGround) {
+    createGround.apply(null,e);
+  }
 
   // add margin
   GROUND_MIN_Y -= 200;
