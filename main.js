@@ -254,7 +254,7 @@ GROUND.update=()=>{ updateChildren(GROUND); }
       g.clear();
       g.beginFill(g.color);
       g.lineStyle(1, 0x00000, 1);
-      g.drawRect(0, 0, w, h);
+      g.drawRect(0, 0, w-1, h-1);
       g.endFill();
     };
     g.destroy=()=>{
@@ -295,7 +295,7 @@ let createEnemy=(x,y)=>{
   b.ground=null;
   b.speed_x=.05;
   b.speed_y=0;
-  b.fall_acceleration_y = .002;
+  b.fall_acceleration = .002;
   b.die=()=>{
     SFX.die(); 
     b.destroy();
@@ -349,7 +349,7 @@ let createEnemy=(x,y)=>{
         b.destroy();
         return;
       }
-      b.speed_y += b.fall_acceleration_y * ELAPSED_TIME; 
+      b.speed_y += b.fall_acceleration * ELAPSED_TIME; 
     }
 
     // if hits player
@@ -465,10 +465,9 @@ let createPlayer=()=>{
   p.speed_x = 0;
   p.speed_y = 0;
   p.walk_acceleration = .0004;
-  p.run_acceleration = .0008;
+  p.run_acceleration = .0006;
   p.stop_acceleration = .001;
-  p.fall_acceleration_y = .002;
-  p.fall_acceleration_x = .0004;
+  p.fall_acceleration = .002;
   p.walk_max_speed = .2;
   p.run_max_speed = .4;
   p.start_jump_speed = .5;
@@ -484,6 +483,7 @@ let createPlayer=()=>{
   p.can_respawn_ms = T1;
   p.score=0;
   p.bullet_speed=.8;
+  p.air_turn_factor = .4;
 
   p.spawn=()=>{
     SFX.spawn();
@@ -560,12 +560,12 @@ let createPlayer=()=>{
         let def = {};
         if (p.x < p.editingObject.x) {
           def.x = p.x;
-        } else if (p.x - p.prevX > 0) {
+        } else {
           def.w = p.editingObject.width + (p.x-p.prevX);
         }
         if (p.y+p.height < p.editingObject.y) { 
           def.y = p.y + p.height;
-        } else if (p.y - p.prevY > 0) {
+        } else {
           def.h = p.editingObject.height + (p.y-p.prevY);
         }
         p.editingObject.redefine(def);
@@ -677,21 +677,41 @@ let createPlayer=()=>{
         // handle falling
         else {
           // apply gravity to downward speed
-          p.speed_y += p.fall_acceleration_y * ELAPSED_TIME; 
+          p.speed_y += p.fall_acceleration * ELAPSED_TIME; 
       
           // allow player to "swim" a little bit in the air using x axis movement for fun physics
           if (p.input & BUT_RIGHT && p.speed_x >= 0) {
-            p.speed_x += p.fall_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x > p.run_max_speed) {
-              p.speed_x=p.run_max_speed;
+            if (p.input & BUT_X) {
+              p.speed_x += p.air_turn_factor * p.run_acceleration * ELAPSED_TIME;
+              if (p.speed_x > p.run_max_speed) {
+                p.speed_x=p.run_max_speed;
+              }
+            } else {
+              p.speed_x += p.air_turn_factor * p.walk_acceleration * ELAPSED_TIME;
+              if (p.speed_x > p.walk_max_speed) {
+                p.speed_x=p.walk_max_speed;
+              }
             }
           } else if (p.input & BUT_LEFT && p.speed_x <= 0) {
-            p.speed_x -= p.fall_acceleration_x * ELAPSED_TIME;
-            if (p.speed_x < p.run_max_speed * -1) {
-              p.speed_x=p.run_max_speed * -1;
+            if (p.input & BUT_X) {
+              p.speed_x -= p.air_turn_factor * p.run_acceleration * ELAPSED_TIME;
+              if (p.speed_x < (p.run_max_speed * -1)) {
+                p.speed_x=p.run_max_speed * -1;
+              }
+            } else {
+              p.speed_x -= p.air_turn_factor * p.walk_acceleration * ELAPSED_TIME;
+              if (p.speed_x < (p.walk_max_speed * -1)) {
+                p.speed_x=p.walk_max_speed * -1;
+              }
             }
+          } else if (p.input & BUT_LEFT && p.speed_x > 0) {
+            p.speed_x -= p.air_turn_factor * p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_x < 0) p.speed_x=0;
+          } else if (p.input & BUT_RIGHT && p.speed_x < 0) {
+            p.speed_x += p.air_turn_factor * p.stop_acceleration * ELAPSED_TIME;
+            if (p.speed_x > 0) p.speed_x=0;
           }
-      
+
           // if user is holding the jump button, continue jump upward speed if jump time hasn't ended
           if (p.input & BUT_A && T1 > 0 && T1 < p.jump_end) {
             p.speed_y -= (p.continue_jump_speed * ELAPSED_TIME);
